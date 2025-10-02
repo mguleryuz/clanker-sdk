@@ -1,34 +1,34 @@
-import { type Address, encodeAbiParameters } from 'viem';
-import { CLANKERS } from '../utils/clankers.js';
-import type { IClankerExtension } from './IClankerExtension.js';
+import { type Address, encodeAbiParameters } from 'viem'
+import { CLANKERS } from '../utils/clankers'
+import type { IClankerExtension } from './IClankerExtension'
 
 export interface VaultExtensionData {
-  admin: Address;
-  lockupDuration: number;
-  vestingDuration: number;
+  admin: Address
+  lockupDuration: number
+  vestingDuration: number
 }
 
 export class VaultExtension implements IClankerExtension {
-  readonly address = CLANKERS.clanker_v4.related.vault;
-  readonly name = 'Vault';
-  readonly description = 'Vaults a portion of the token supply with optional linear vesting';
-  readonly maxAllocationPercentage = 90;
-  readonly allowMultiple = false;
+  readonly address = CLANKERS.clanker_v4.related.vault
+  readonly name = 'Vault'
+  readonly description = 'Vaults a portion of the token supply with optional linear vesting'
+  readonly maxAllocationPercentage = 90
+  readonly allowMultiple = false
 
   encodeExtensionData(data: VaultExtensionData): `0x${string}` {
     if (!this.validateExtensionData(data)) {
-      throw new Error('Invalid vault extension data');
+      throw new Error('Invalid vault extension data')
     }
 
     return encodeAbiParameters(
       [{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }],
       [data.admin, BigInt(data.lockupDuration), BigInt(data.vestingDuration)]
-    );
+    )
   }
 
   validateExtensionData(data: unknown): boolean {
-    if (!data || typeof data !== 'object') return false;
-    const vaultData = data as VaultExtensionData;
+    if (!data || typeof data !== 'object') return false
+    const vaultData = data as VaultExtensionData
 
     return (
       typeof vaultData.admin === 'string' &&
@@ -36,6 +36,6 @@ export class VaultExtension implements IClankerExtension {
       typeof vaultData.vestingDuration === 'number' &&
       vaultData.lockupDuration >= 0 &&
       vaultData.vestingDuration >= 0
-    );
+    )
   }
 }

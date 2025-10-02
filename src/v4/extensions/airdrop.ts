@@ -1,30 +1,27 @@
-import { StandardMerkleTree } from '@openzeppelin/merkle-tree';
-import type { MerkleTree } from '@openzeppelin/merkle-tree/dist/merkletree.js';
-import { isAddressEqual, stringify } from 'viem';
-import * as z from 'zod/v4';
-import { ClankerAirdrop_v4_abi } from '../../abi/v4/ClankerAirdrop.js';
+import { StandardMerkleTree } from '@openzeppelin/merkle-tree'
+import type { MerkleTree } from '@openzeppelin/merkle-tree/dist/merkletree'
+import { isAddressEqual, stringify } from 'viem'
+import * as z from 'zod/v4'
+import { ClankerAirdrop_v4_abi } from '../../abi/v4/ClankerAirdrop'
 import {
   type Chain as ClankerChain,
   type ClankerDeployment,
   clankerConfigFor,
   type RelatedV4,
-} from '../../utils/clankers.js';
-import {
-  type ClankerTransactionConfig,
-  writeClankerContract,
-} from '../../utils/write-clanker-contracts.js';
-import { addressSchema } from '../../utils/zod-onchain.js';
-import type { Clanker } from '../index.js';
+} from '../../utils/clankers'
+import { type ClankerTransactionConfig, writeClankerContract } from '../../utils/write-clanker-contracts'
+import { addressSchema } from '../../utils/zod-onchain'
+import type { Clanker } from '../index'
 
 const AirdropEntrySchema = z.array(
   z.object({
     account: addressSchema,
     amount: z.number(),
   })
-);
+)
 
-export type AirdropRecipient = z.input<typeof AirdropEntrySchema>[0];
-type MerkleEntry = [account: `0x${string}`, amount: string];
+export type AirdropRecipient = z.input<typeof AirdropEntrySchema>[0]
+type MerkleEntry = [account: `0x${string}`, amount: string]
 
 /**
  * Create an airdrop for the recipients.
@@ -37,18 +34,18 @@ export function createAirdrop(
   recipients: AirdropRecipient[],
   options: { tokenDecimals: bigint } = { tokenDecimals: 18n }
 ): { tree: MerkleTree<MerkleEntry>; airdrop: { merkleRoot: `0x${string}`; amount: number } } {
-  const parsedEntries = AirdropEntrySchema.parse(recipients);
+  const parsedEntries = AirdropEntrySchema.parse(recipients)
 
   const values: MerkleEntry[] = parsedEntries.map(({ account, amount }) => [
     account,
     (BigInt(amount) * 10n ** options.tokenDecimals).toString(),
-  ]);
+  ])
 
-  const amount = parsedEntries.reduce((agg, { amount }) => amount + agg, 0);
+  const amount = parsedEntries.reduce((agg, { amount }) => amount + agg, 0)
 
-  const tree = StandardMerkleTree.of<MerkleEntry>(values, ['address', 'uint256']);
+  const tree = StandardMerkleTree.of<MerkleEntry>(values, ['address', 'uint256'])
 
-  tree.validate();
+  tree.validate()
 
   return {
     tree,
@@ -56,7 +53,7 @@ export function createAirdrop(
       merkleRoot: tree.root as `0x${string}`,
       amount,
     },
-  };
+  }
 }
 
 /**
@@ -77,9 +74,9 @@ export async function registerAirdrop(token: `0x${string}`, tree: MerkleTree<Mer
       merkleRoot: tree.root,
       tree: tree.dump(),
     }),
-  }).then((r) => r.json() as Promise<{ success: boolean }>);
+  }).then((r) => r.json() as Promise<{ success: boolean }>)
 
-  return success;
+  return success
 }
 
 /**
@@ -93,13 +90,13 @@ export function getAirdropProofs(
   tree: MerkleTree<MerkleEntry>,
   account: `0x${string}`
 ): { proofs: { proof: `0x${string}`[]; entry: { account: `0x${string}`; amount: bigint } }[] } {
-  const indices = [];
+  const indices = []
   for (const [i, entry] of tree.entries()) {
-    if (!isAddressEqual(entry[0], account)) continue;
+    if (!isAddressEqual(entry[0], account)) continue
 
-    indices.push({ i: i, entry });
+    indices.push({ i: i, entry })
   }
-  if (indices.length === 0) return { proofs: [] };
+  if (indices.length === 0) return { proofs: [] }
 
   return {
     proofs: indices.map(({ i, entry }) => ({
@@ -109,7 +106,7 @@ export function getAirdropProofs(
         amount: BigInt(entry[1]),
       },
     })),
-  };
+  }
 }
 
 /**
@@ -123,16 +120,16 @@ export async function fetchAirdropProofs(
   token: `0x${string}`,
   account: `0x${string}`
 ): Promise<{
-  proofs: { proof: `0x${string}`[]; entry: { account: `0x${string}`; amount: bigint } }[];
+  proofs: { proof: `0x${string}`[]; entry: { account: `0x${string}`; amount: bigint } }[]
 }> {
   const { proofs } = await fetch(
     `https://www.clanker.world/api/airdrops/claim?tokenAddress=${token}&claimerAddress=${account}`
   ).then(
     (r) =>
       r.json() as Promise<{
-        proofs: { proof: `0x${string}`[]; entry: { account: `0x${string}`; amount: string } }[];
+        proofs: { proof: `0x${string}`[]; entry: { account: `0x${string}`; amount: string } }[]
       }>
-  );
+  )
 
   return {
     proofs: proofs.map(({ proof, entry: { account, amount } }) => ({
@@ -142,7 +139,7 @@ export async function fetchAirdropProofs(
         amount: BigInt(amount),
       },
     })),
-  };
+  }
 }
 
 /**
@@ -161,14 +158,14 @@ export function getClaimAirdropTransaction({
   proof,
   chainId,
 }: {
-  chainId: ClankerChain;
-  token: `0x${string}`;
-  recipient: `0x${string}`;
-  amount: bigint;
-  proof: `0x${string}`[];
+  chainId: ClankerChain
+  token: `0x${string}`
+  recipient: `0x${string}`
+  amount: bigint
+  proof: `0x${string}`[]
 }): ClankerTransactionConfig<typeof ClankerAirdrop_v4_abi, 'claim'> {
-  const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chainId, 'clanker_v4');
-  if (!config) throw new Error(`Clanker is not ready on ${chainId}`);
+  const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chainId, 'clanker_v4')
+  if (!config) throw new Error(`Clanker is not ready on ${chainId}`)
 
   return {
     chainId,
@@ -176,7 +173,7 @@ export function getClaimAirdropTransaction({
     abi: ClankerAirdrop_v4_abi,
     functionName: 'claim',
     args: [token, recipient, amount, proof],
-  };
+  }
 }
 
 /**
@@ -190,18 +187,18 @@ export function getClaimAirdropTransaction({
  * @returns Outcome of the transaction
  */
 export function claimAirdrop(data: {
-  clanker: Clanker;
-  token: `0x${string}`;
-  recipient: `0x${string}`;
-  amount: bigint;
-  proof: `0x${string}`[];
+  clanker: Clanker
+  token: `0x${string}`
+  recipient: `0x${string}`
+  amount: bigint
+  proof: `0x${string}`[]
 }) {
-  if (!data.clanker.publicClient) throw new Error('Public client required on clanker');
-  if (!data.clanker.wallet) throw new Error('Wallet client required on clanker');
+  if (!data.clanker.publicClient) throw new Error('Public client required on clanker')
+  if (!data.clanker.wallet) throw new Error('Wallet client required on clanker')
   const tx = getClaimAirdropTransaction({
     chainId: data.clanker.wallet.chain.id as ClankerChain,
     ...data,
-  });
+  })
 
-  return writeClankerContract(data.clanker.publicClient, data.clanker.wallet, tx);
+  return writeClankerContract(data.clanker.publicClient, data.clanker.wallet, tx)
 }

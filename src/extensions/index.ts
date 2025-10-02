@@ -1,3 +1,3 @@
-export * from './DevBuyExtension.js';
-export * from './IClankerExtension.js';
-export * from './VaultExtension.js';
+export * from './DevBuyExtension'
+export * from './IClankerExtension'
+export * from './VaultExtension'

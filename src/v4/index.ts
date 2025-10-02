@@ -1,38 +1,33 @@
-import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem';
-import { base } from 'viem/chains';
-import { ClankerFeeLocker_abi } from '../abi/v4/ClankerFeeLocker.js';
-import { ClankerLocker_v4_abi } from '../abi/v4/ClankerLocker.js';
-import { ClankerVault_v4_abi } from '../abi/v4/ClankerVault.js';
-import { type ClankerTokenV4, clankerTokenV4Converter } from '../config/clankerTokenV4.js';
-import { deployToken, simulateDeployToken } from '../deployment/deploy.js';
-import {
-  type Chain as ClankerChain,
-  type ClankerDeployment,
-  clankerConfigFor,
-  type RelatedV4,
-} from '../utils/clankers.js';
-import type { ClankerError } from '../utils/errors.js';
+import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem'
+import { base } from 'viem/chains'
+import { ClankerFeeLocker_abi } from '../abi/v4/ClankerFeeLocker'
+import { ClankerLocker_v4_abi } from '../abi/v4/ClankerLocker'
+import { ClankerVault_v4_abi } from '../abi/v4/ClankerVault'
+import { type ClankerTokenV4, clankerTokenV4Converter } from '../config/clankerTokenV4'
+import { deployToken, simulateDeployToken } from '../deployment/deploy'
+import { type Chain as ClankerChain, type ClankerDeployment, clankerConfigFor, type RelatedV4 } from '../utils/clankers'
+import type { ClankerError } from '../utils/errors'
 import {
   type ClankerTransactionConfig,
   simulateClankerContract,
   writeClankerContract,
-} from '../utils/write-clanker-contracts.js';
+} from '../utils/write-clanker-contracts'
 
 type ClankerConfig = {
-  wallet?: WalletClient<Transport, Chain, Account>;
-  publicClient?: PublicClient;
-};
+  wallet?: WalletClient<Transport, Chain, Account>
+  publicClient?: PublicClient
+}
 
 /**
  * Clanker v4
  */
 export class Clanker {
-  readonly wallet?: WalletClient<Transport, Chain, Account>;
-  readonly publicClient?: PublicClient;
+  readonly wallet?: WalletClient<Transport, Chain, Account>
+  readonly publicClient?: PublicClient
 
   constructor(config?: ClankerConfig) {
-    this.wallet = config?.wallet;
-    this.publicClient = config?.publicClient;
+    this.wallet = config?.wallet
+    this.publicClient = config?.publicClient
   }
 
   /**
@@ -46,19 +41,16 @@ export class Clanker {
     { token, rewardRecipient }: { token: `0x${string}`; rewardRecipient: `0x${string}` },
     options?: { chain?: Chain }
   ): Promise<ClankerTransactionConfig<typeof ClankerFeeLocker_abi>> {
-    const chain = this.publicClient?.chain || options?.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient?.chain || options?.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     return {
       address: config?.related.feeLocker,
       abi: ClankerFeeLocker_abi,
       functionName: 'claim',
       args: [rewardRecipient, token],
-    };
+    }
   }
 
   /**
@@ -74,13 +66,13 @@ export class Clanker {
     { token, rewardRecipient }: { token: `0x${string}`; rewardRecipient: `0x${string}` },
     account?: Account
   ) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getClaimRewardsTransaction({ token, rewardRecipient });
+    const input = await this.getClaimRewardsTransaction({ token, rewardRecipient })
 
-    return simulateClankerContract(this.publicClient, acc, input);
+    return simulateClankerContract(this.publicClient, acc, input)
   }
 
   /**
@@ -94,17 +86,15 @@ export class Clanker {
     token,
     rewardRecipient,
   }: {
-    token: `0x${string}`;
-    rewardRecipient: `0x${string}`;
-  }): Promise<
-    { txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }
-  > {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
+    token: `0x${string}`
+    rewardRecipient: `0x${string}`
+  }): Promise<{ txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }> {
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getClaimRewardsTransaction({ token, rewardRecipient });
+    const input = await this.getClaimRewardsTransaction({ token, rewardRecipient })
 
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -119,19 +109,16 @@ export class Clanker {
 
     options?: { chain?: Chain }
   ) {
-    const chain = this.publicClient?.chain || options?.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient?.chain || options?.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     return {
       address: config.related.feeLocker,
       abi: ClankerFeeLocker_abi,
       functionName: 'availableFees',
       args: [rewardRecipient, token],
-    } as const;
+    } as const
   }
 
   /**
@@ -141,19 +128,13 @@ export class Clanker {
    * @param rewardRecipient The recipient to check rewards for
    * @returns Amount of rewards for the `token` and `rewardRecipient`
    */
-  async availableRewards({
-    token,
-    rewardRecipient,
-  }: {
-    token: `0x${string}`;
-    rewardRecipient: `0x${string}`;
-  }) {
-    if (!rewardRecipient) throw new Error('Account required for simulation');
-    if (!this.publicClient) throw new Error('Public client required for deployment');
+  async availableRewards({ token, rewardRecipient }: { token: `0x${string}`; rewardRecipient: `0x${string}` }) {
+    if (!rewardRecipient) throw new Error('Account required for simulation')
+    if (!this.publicClient) throw new Error('Public client required for deployment')
 
-    const tx = await this.getAvailableRewardsTransaction({ token, rewardRecipient });
+    const tx = await this.getAvailableRewardsTransaction({ token, rewardRecipient })
 
-    return this.publicClient.readContract(tx);
+    return this.publicClient.readContract(tx)
   }
 
   /**
@@ -163,7 +144,7 @@ export class Clanker {
    * @returns Abi transaction
    */
   async getDeployTransaction(token: ClankerTokenV4) {
-    return clankerTokenV4Converter(token);
+    return clankerTokenV4Converter(token)
   }
 
   /**
@@ -174,13 +155,13 @@ export class Clanker {
    * @returns Abi transaction
    */
   async deploySimulate(token: ClankerTokenV4, account?: Account) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required for deployment');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required for deployment')
 
-    const input = await this.getDeployTransaction(token);
+    const input = await this.getDeployTransaction(token)
 
-    return simulateDeployToken(input, acc, this.publicClient);
+    return simulateDeployToken(input, acc, this.publicClient)
   }
 
   /**
@@ -190,12 +171,12 @@ export class Clanker {
    * @returns Transaction hash and awaitable function for full deployment
    */
   async deploy(token: ClankerTokenV4) {
-    if (!this.wallet) throw new Error('Wallet client required for deployment');
-    if (!this.publicClient) throw new Error('Public client required for deployment');
+    if (!this.wallet) throw new Error('Wallet client required for deployment')
+    if (!this.publicClient) throw new Error('Public client required for deployment')
 
-    const input = await this.getDeployTransaction(token);
+    const input = await this.getDeployTransaction(token)
 
-    return deployToken(input, this.wallet, this.publicClient);
+    return deployToken(input, this.wallet, this.publicClient)
   }
 
   /**
@@ -213,25 +194,22 @@ export class Clanker {
       rewardIndex,
       newRecipient,
     }: {
-      token: `0x${string}`;
-      rewardIndex: bigint;
-      newRecipient: `0x${string}`;
+      token: `0x${string}`
+      rewardIndex: bigint
+      newRecipient: `0x${string}`
     },
     options?: { chain?: Chain }
   ): Promise<ClankerTransactionConfig<typeof ClankerLocker_v4_abi>> {
-    const chain = this.publicClient?.chain || options?.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient?.chain || options?.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     return {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardRecipient',
       args: [token, rewardIndex, newRecipient],
-    };
+    }
   }
 
   /**
@@ -249,25 +227,22 @@ export class Clanker {
       rewardIndex,
       newAdmin,
     }: {
-      token: `0x${string}`;
-      rewardIndex: bigint;
-      newAdmin: `0x${string}`;
+      token: `0x${string}`
+      rewardIndex: bigint
+      newAdmin: `0x${string}`
     },
     options?: { chain?: Chain }
   ): Promise<ClankerTransactionConfig<typeof ClankerLocker_v4_abi>> {
-    const chain = this.publicClient?.chain || options?.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient?.chain || options?.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     return {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardAdmin',
       args: [token, rewardIndex, newAdmin],
-    };
+    }
   }
 
   /**
@@ -286,31 +261,28 @@ export class Clanker {
       rewardIndex,
       newRecipient,
     }: {
-      token: `0x${string}`;
-      rewardIndex: bigint;
-      newRecipient: `0x${string}`;
+      token: `0x${string}`
+      rewardIndex: bigint
+      newRecipient: `0x${string}`
     },
     account?: Account
   ) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const chain = this.publicClient.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     const input = {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardRecipient' as const,
       args: [token, rewardIndex, newRecipient] as const,
-    };
+    }
 
-    return simulateClankerContract(this.publicClient, acc, input);
+    return simulateClankerContract(this.publicClient, acc, input)
   }
 
   /**
@@ -329,31 +301,28 @@ export class Clanker {
       rewardIndex,
       newAdmin,
     }: {
-      token: `0x${string}`;
-      rewardIndex: bigint;
-      newAdmin: `0x${string}`;
+      token: `0x${string}`
+      rewardIndex: bigint
+      newAdmin: `0x${string}`
     },
     account?: Account
   ) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const chain = this.publicClient.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     const input = {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardAdmin' as const,
       args: [token, rewardIndex, newAdmin] as const,
-    };
+    }
 
-    return simulateClankerContract(this.publicClient, acc, input);
+    return simulateClankerContract(this.publicClient, acc, input)
   }
 
   /**
@@ -369,30 +338,25 @@ export class Clanker {
     rewardIndex,
     newRecipient,
   }: {
-    token: `0x${string}`;
-    rewardIndex: bigint;
-    newRecipient: `0x${string}`;
-  }): Promise<
-    { txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }
-  > {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
+    token: `0x${string}`
+    rewardIndex: bigint
+    newRecipient: `0x${string}`
+  }): Promise<{ txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }> {
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const chain = this.publicClient.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     const input = {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardRecipient' as const,
       args: [token, rewardIndex, newRecipient] as const,
-    };
+    }
 
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -408,30 +372,25 @@ export class Clanker {
     rewardIndex,
     newAdmin,
   }: {
-    token: `0x${string}`;
-    rewardIndex: bigint;
-    newAdmin: `0x${string}`;
-  }): Promise<
-    { txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }
-  > {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
+    token: `0x${string}`
+    rewardIndex: bigint
+    newAdmin: `0x${string}`
+  }): Promise<{ txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }> {
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const chain = this.publicClient.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
 
     const input = {
       address: config.related.locker,
       abi: ClankerLocker_v4_abi,
       functionName: 'updateRewardAdmin' as const,
       args: [token, rewardIndex, newAdmin] as const,
-    };
+    }
 
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -446,18 +405,15 @@ export class Clanker {
     options?: { chain?: Chain }
     // biome-ignore lint/suspicious/noExplicitAny: ABI type constraints require any
   ): Promise<any> {
-    const chain = this.publicClient?.chain || options?.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    const chain = this.publicClient?.chain || options?.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
     return {
       address: config.related.vault,
       abi: ClankerVault_v4_abi,
       functionName: 'claim',
       args: [token],
-    };
+    }
   }
 
   /**
@@ -467,10 +423,10 @@ export class Clanker {
    * @returns Transaction hash of the claim or error
    */
   async claimVaultedTokens({ token }: { token: `0x${string}` }) {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
-    const input = await this.getVaultClaimTransaction({ token });
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
+    const input = await this.getVaultClaimTransaction({ token })
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -480,35 +436,31 @@ export class Clanker {
    * @returns Amount of tokens available to claim
    */
   async getVaultClaimableAmount({ token }: { token: `0x${string}` }) {
-    if (!this.publicClient) throw new Error('Public client required');
-    const chain = this.publicClient.chain || base;
-    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(
-      chain.id as ClankerChain,
-      'clanker_v4'
-    );
-    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`);
+    if (!this.publicClient) throw new Error('Public client required')
+    const chain = this.publicClient.chain || base
+    const config = clankerConfigFor<ClankerDeployment<RelatedV4>>(chain.id as ClankerChain, 'clanker_v4')
+    if (!config) throw new Error(`Clanker is not ready on ${chain.id}`)
     try {
       return await this.publicClient.readContract({
         address: config.related.vault,
         abi: ClankerVault_v4_abi,
         functionName: 'amountAvailableToClaim',
         args: [token],
-      });
+      })
     } catch (err: unknown) {
       // If the contract returns no data, treat as 0 available to claim
       if (
         err &&
         typeof err === 'object' &&
         'name' in err &&
-        (err.name === 'ContractFunctionExecutionError' ||
-          err.name === 'ContractFunctionZeroDataError') &&
+        (err.name === 'ContractFunctionExecutionError' || err.name === 'ContractFunctionZeroDataError') &&
         'message' in err &&
         typeof err.message === 'string' &&
         err.message.includes('returned no data')
       ) {
-        return 0n;
+        return 0n
       }
-      throw err;
+      throw err
     }
   }
 
@@ -524,21 +476,20 @@ export class Clanker {
     chainId,
     vaultAddress,
   }: {
-    token: `0x${string}`;
-    chainId?: number;
-    vaultAddress?: `0x${string}`;
+    token: `0x${string}`
+    chainId?: number
+    vaultAddress?: `0x${string}`
   }) {
     // If vaultAddress is not provided, user must supply it (for offline usage)
-    if (!vaultAddress)
-      throw new Error('vaultAddress is required when using static getVaultClaimTransactionObject');
+    if (!vaultAddress) throw new Error('vaultAddress is required when using static getVaultClaimTransactionObject')
     return {
       address: vaultAddress,
       abi: ClankerVault_v4_abi,
       functionName: 'claim',
       args: [token],
       chainId,
-    };
+    }
   }
 }
 
-export { encodeFeeConfig } from '../config/clankerTokenV4.js';
+export { encodeFeeConfig } from '../config/clankerTokenV4'

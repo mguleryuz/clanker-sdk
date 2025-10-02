@@ -1,31 +1,31 @@
-import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem';
-import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker.js';
-import { LpLockerv2_abi } from '../abi/v3.1/LpLockerv2.js';
-import { type ClankerTokenV3, clankerTokenV3Converter } from '../config/clankerTokenV3.js';
-import { deployToken, simulateDeployToken } from '../deployment/deploy.js';
-import { CLANKERS } from '../utils/clankers.js';
-import type { ClankerError } from '../utils/errors.js';
+import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem'
+import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker'
+import { LpLockerv2_abi } from '../abi/v3.1/LpLockerv2'
+import { type ClankerTokenV3, clankerTokenV3Converter } from '../config/clankerTokenV3'
+import { deployToken, simulateDeployToken } from '../deployment/deploy'
+import { CLANKERS } from '../utils/clankers'
+import type { ClankerError } from '../utils/errors'
 import {
   type ClankerTransactionConfig,
   simulateClankerContract,
   writeClankerContract,
-} from '../utils/write-clanker-contracts.js';
+} from '../utils/write-clanker-contracts'
 
 type ClankerConfig = {
-  wallet?: WalletClient<Transport, Chain, Account>;
-  publicClient?: PublicClient;
-};
+  wallet?: WalletClient<Transport, Chain, Account>
+  publicClient?: PublicClient
+}
 
 /**
  * Clanker v3
  */
 export class Clanker {
-  private readonly wallet?: WalletClient<Transport, Chain, Account>;
-  private readonly publicClient?: PublicClient;
+  private readonly wallet?: WalletClient<Transport, Chain, Account>
+  private readonly publicClient?: PublicClient
 
   constructor(config?: ClankerConfig) {
-    this.wallet = config?.wallet;
-    this.publicClient = config?.publicClient;
+    this.wallet = config?.wallet
+    this.publicClient = config?.publicClient
   }
 
   /**
@@ -34,15 +34,13 @@ export class Clanker {
    * @param token The token to claim for
    * @returns Abi transaction
    */
-  async getClaimRewardsTransaction(
-    token: `0x${string}`
-  ): Promise<ClankerTransactionConfig<typeof Clanker_v3_1_abi>> {
+  async getClaimRewardsTransaction(token: `0x${string}`): Promise<ClankerTransactionConfig<typeof Clanker_v3_1_abi>> {
     return {
       address: CLANKERS.clanker_v3_1.address,
       abi: Clanker_v3_1_abi,
       functionName: 'claimRewards',
       args: [token],
-    };
+    }
   }
 
   /**
@@ -54,13 +52,13 @@ export class Clanker {
    * @returns The simulated output
    */
   async claimRewardsSimulate(token: `0x${string}`, account?: Account) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getClaimRewardsTransaction(token);
+    const input = await this.getClaimRewardsTransaction(token)
 
-    return simulateClankerContract(this.publicClient, acc, input);
+    return simulateClankerContract(this.publicClient, acc, input)
   }
 
   /**
@@ -71,15 +69,13 @@ export class Clanker {
    */
   async claimRewards(
     token: `0x${string}`
-  ): Promise<
-    { txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }
-  > {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
+  ): Promise<{ txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }> {
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getClaimRewardsTransaction(token);
+    const input = await this.getClaimRewardsTransaction(token)
 
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -95,7 +91,7 @@ export class Clanker {
       abi: LpLockerv2_abi,
       functionName: 'updateCreatorRewardRecipient' as const,
       args: [tokenId, newRecipient] as const,
-    };
+    }
   }
 
   /**
@@ -107,18 +103,14 @@ export class Clanker {
    * @param account Optional account to simulate calling for
    * @returns The simulated output
    */
-  async updateCreatorRewardRecipientSimulate(
-    tokenId: bigint,
-    newRecipient: `0x${string}`,
-    account?: Account
-  ) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required');
+  async updateCreatorRewardRecipientSimulate(tokenId: bigint, newRecipient: `0x${string}`, account?: Account) {
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getUpdateCreatorRewardRecipientTransaction(tokenId, newRecipient);
+    const input = await this.getUpdateCreatorRewardRecipientTransaction(tokenId, newRecipient)
 
-    return simulateClankerContract(this.publicClient, acc, input);
+    return simulateClankerContract(this.publicClient, acc, input)
   }
 
   /**
@@ -131,15 +123,13 @@ export class Clanker {
   async updateCreatorRewardRecipient(
     tokenId: bigint,
     newRecipient: `0x${string}`
-  ): Promise<
-    { txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }
-  > {
-    if (!this.wallet) throw new Error('Wallet client required');
-    if (!this.publicClient) throw new Error('Public client required');
+  ): Promise<{ txHash: `0x${string}`; error: undefined } | { txHash: undefined; error: ClankerError }> {
+    if (!this.wallet) throw new Error('Wallet client required')
+    if (!this.publicClient) throw new Error('Public client required')
 
-    const input = await this.getUpdateCreatorRewardRecipientTransaction(tokenId, newRecipient);
+    const input = await this.getUpdateCreatorRewardRecipientTransaction(tokenId, newRecipient)
 
-    return writeClankerContract(this.publicClient, this.wallet, input);
+    return writeClankerContract(this.publicClient, this.wallet, input)
   }
 
   /**
@@ -150,7 +140,7 @@ export class Clanker {
    * @returns Abi transaction
    */
   async getDeployTransaction(token: ClankerTokenV3, requestorAddress: `0x${string}`) {
-    return clankerTokenV3Converter(token, { requestorAddress });
+    return clankerTokenV3Converter(token, { requestorAddress })
   }
 
   /**
@@ -161,13 +151,13 @@ export class Clanker {
    * @returns Abi transaction
    */
   async deploySimulate(token: ClankerTokenV3, account?: Account) {
-    const acc = account || this.wallet?.account;
-    if (!acc) throw new Error('Account or wallet client required for simulation');
-    if (!this.publicClient) throw new Error('Public client required for deployment');
+    const acc = account || this.wallet?.account
+    if (!acc) throw new Error('Account or wallet client required for simulation')
+    if (!this.publicClient) throw new Error('Public client required for deployment')
 
-    const input = await this.getDeployTransaction(token, acc.address);
+    const input = await this.getDeployTransaction(token, acc.address)
 
-    return simulateDeployToken(input, acc, this.publicClient);
+    return simulateDeployToken(input, acc, this.publicClient)
   }
 
   /**
@@ -177,11 +167,11 @@ export class Clanker {
    * @returns Transaction hash and awaitable function for full deployment
    */
   async deploy(token: ClankerTokenV3) {
-    if (!this.wallet) throw new Error('Wallet client required for deployment');
-    if (!this.publicClient) throw new Error('Public client required for deployment');
+    if (!this.wallet) throw new Error('Wallet client required for deployment')
+    if (!this.publicClient) throw new Error('Public client required for deployment')
 
-    const input = await this.getDeployTransaction(token, this.wallet.account.address);
+    const input = await this.getDeployTransaction(token, this.wallet.account.address)
 
-    return deployToken(input, this.wallet, this.publicClient);
+    return deployToken(input, this.wallet, this.publicClient)
   }
 }

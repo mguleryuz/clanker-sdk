@@ -1,43 +1,41 @@
 #!/usr/bin/env node
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import inquirer from 'inquirer';
-import { createPublicClient, createWalletClient, http, type PublicClient, stringify } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
-import type { ClankerTokenV3 } from '../config/clankerTokenV3.js';
-import { Clanker } from '../v3/index.js';
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import inquirer from 'inquirer'
+import { createPublicClient, createWalletClient, http, type PublicClient, stringify } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { base } from 'viem/chains'
+import type { ClankerTokenV3 } from '../config/clankerTokenV3'
+import { Clanker } from '../v3/index'
 
 // Read ASCII art from file
-const ASCII_ART = fs.readFileSync(path.join(__dirname, 'ascii.txt'), 'utf8');
+const ASCII_ART = fs.readFileSync(path.join(__dirname, 'ascii.txt'), 'utf8')
 
 // Constants
-const WETH_ADDRESS = '0x4200000000000000000000000000000000000006' as const;
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+const WETH_ADDRESS = '0x4200000000000000000000000000000000000006' as const
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
 
 // Main function that will be exported
 async function createClanker() {
-  const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
-  const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS as `0x${string}`;
-  const RPC_URL = process.env.RPC_URL;
+  const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`
+  const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS as `0x${string}`
+  const RPC_URL = process.env.RPC_URL
 
   // Initialize wallet with private key
-  const account = privateKeyToAccount(PRIVATE_KEY);
+  const account = privateKeyToAccount(PRIVATE_KEY)
 
   function checkEnvironment(): boolean {
-    const missingVars = [];
+    const missingVars = []
 
-    if (!PRIVATE_KEY) missingVars.push('PRIVATE_KEY');
-    if (!FACTORY_ADDRESS) missingVars.push('FACTORY_ADDRESS');
+    if (!PRIVATE_KEY) missingVars.push('PRIVATE_KEY')
+    if (!FACTORY_ADDRESS) missingVars.push('FACTORY_ADDRESS')
 
     if (missingVars.length > 0) {
-      console.log('\n❌ Missing required environment variables:');
-      console.log(missingVars.join(', '));
-      console.log(
-        '\n📝 Please create a .env file in your current directory with the following variables:'
-      );
+      console.log('\n❌ Missing required environment variables:')
+      console.log(missingVars.join(', '))
+      console.log('\n📝 Please create a .env file in your current directory with the following variables:')
       console.log(`
 Required:
 PRIVATE_KEY=your_private_key_here
@@ -45,144 +43,144 @@ FACTORY_ADDRESS=factory_contract_address_here
 
 Optional:
 RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
-      `);
-      console.log('\nMake sure to include the 0x prefix for addresses and private keys.');
-      console.log('Never share or commit your private key!\n');
-      return false;
+      `)
+      console.log('\nMake sure to include the 0x prefix for addresses and private keys.')
+      console.log('Never share or commit your private key!\n')
+      return false
     }
 
     // Validate private key format
     if (!PRIVATE_KEY.startsWith('0x') || PRIVATE_KEY.length !== 66) {
-      console.log('\n❌ Invalid PRIVATE_KEY format. It should:');
-      console.log('- Start with 0x');
-      console.log('- Be 64 characters long (plus 0x prefix)');
-      return false;
+      console.log('\n❌ Invalid PRIVATE_KEY format. It should:')
+      console.log('- Start with 0x')
+      console.log('- Be 64 characters long (plus 0x prefix)')
+      return false
     }
 
     // Validate factory address format
     if (!FACTORY_ADDRESS.startsWith('0x') || FACTORY_ADDRESS.length !== 42) {
-      console.log('\n❌ Invalid FACTORY_ADDRESS format. It should:');
-      console.log('- Start with 0x');
-      console.log('- Be 40 characters long (plus 0x prefix)');
-      return false;
+      console.log('\n❌ Invalid FACTORY_ADDRESS format. It should:')
+      console.log('- Start with 0x')
+      console.log('- Be 40 characters long (plus 0x prefix)')
+      return false
     }
 
-    return true;
+    return true
   }
 
   interface ClankerAnswers {
-    name: string;
-    symbol: string;
-    image: string;
-    pairedTokenChoice: 'WETH' | 'USDC' | 'CUSTOM';
-    customPairedToken?: string;
-    initialMarketCapUsd: string;
-    customMarketCap?: string;
-    customDevBuy?: string;
-    customVaultPercentage?: string;
-    customVaultDuration?: string;
+    name: string
+    symbol: string
+    image: string
+    pairedTokenChoice: 'WETH' | 'USDC' | 'CUSTOM'
+    customPairedToken?: string
+    initialMarketCapUsd: string
+    customMarketCap?: string
+    customDevBuy?: string
+    customVaultPercentage?: string
+    customVaultDuration?: string
     metadata: {
-      description: string;
-      socialMediaUrls: { platform: string; url: string }[];
-      auditUrls: string[];
-      telegram?: string;
-      website?: string;
-      twitter?: string;
-      farcaster?: string;
-    };
+      description: string
+      socialMediaUrls: { platform: string; url: string }[]
+      auditUrls: string[]
+      telegram?: string
+      website?: string
+      twitter?: string
+      farcaster?: string
+    }
     vaultConfig: {
-      vaultPercentage: string;
-      durationInDays: string;
-    };
+      vaultPercentage: string
+      durationInDays: string
+    }
     devBuy: {
-      ethAmount: string;
-      maxSlippage: number;
-    };
+      ethAmount: string
+      maxSlippage: number
+    }
     rewardsConfig: {
-      creatorReward: string | number;
-      customCreatorReward?: string;
-      creatorAdmin?: `0x${string}`;
-      creatorRewardRecipient?: `0x${string}`;
-      interfaceAdmin?: `0x${string}`;
-      interfaceRewardRecipient?: `0x${string}`;
-    };
+      creatorReward: string | number
+      customCreatorReward?: string
+      creatorAdmin?: `0x${string}`
+      creatorRewardRecipient?: `0x${string}`
+      interfaceAdmin?: `0x${string}`
+      interfaceRewardRecipient?: `0x${string}`
+    }
   }
 
   const validateAddress = (input: string) => {
-    if (!input) return 'Address cannot be empty';
-    if (!/^0x[a-fA-F0-9]{40}$/.test(input)) return 'Invalid Ethereum address';
-    return true;
-  };
+    if (!input) return 'Address cannot be empty'
+    if (!/^0x[a-fA-F0-9]{40}$/.test(input)) return 'Invalid Ethereum address'
+    return true
+  }
 
   const _validatePercentage = (input: string) => {
-    const num = Number(input);
-    if (Number.isNaN(num)) return 'Must be a number';
-    if (num < 0 || num > 100) return 'Percentage must be between 0 and 100';
-    return true;
-  };
+    const num = Number(input)
+    if (Number.isNaN(num)) return 'Must be a number'
+    if (num < 0 || num > 100) return 'Percentage must be between 0 and 100'
+    return true
+  }
 
   const validateSymbol = (input: string) => {
-    if (!input) return 'Symbol cannot be empty';
-    if (!/^[a-zA-Z0-9]+$/.test(input)) return 'Symbol must contain only letters and numbers';
-    if (input.length > 20) return 'Symbol must be 20 characters or less';
-    return true;
-  };
+    if (!input) return 'Symbol cannot be empty'
+    if (!/^[a-zA-Z0-9]+$/.test(input)) return 'Symbol must contain only letters and numbers'
+    if (input.length > 20) return 'Symbol must be 20 characters or less'
+    return true
+  }
 
   const validateIpfsUri = (input: string) => {
-    if (!input) return 'Image URI cannot be empty';
-    if (!input.startsWith('ipfs://')) return 'Image URI must start with ipfs://';
-    return true;
-  };
+    if (!input) return 'Image URI cannot be empty'
+    if (!input.startsWith('ipfs://')) return 'Image URI must start with ipfs://'
+    return true
+  }
 
   const validateAmount = (input: string) => {
-    if (!input) return 'Amount cannot be empty';
-    if (!/^\d*\.?\d+$/.test(input)) return 'Must be a valid number';
-    return true;
-  };
+    if (!input) return 'Amount cannot be empty'
+    if (!/^\d*\.?\d+$/.test(input)) return 'Must be a valid number'
+    return true
+  }
 
   const _validateHexString = (input: string) => {
-    if (!input) return true; // Optional
-    if (!/^0x[a-fA-F0-9]+$/.test(input)) return 'Must be a valid hex string starting with 0x';
-    return true;
-  };
+    if (!input) return true // Optional
+    if (!/^0x[a-fA-F0-9]+$/.test(input)) return 'Must be a valid hex string starting with 0x'
+    return true
+  }
 
   const validateSlippage = (input: string) => {
-    const num = Number(input);
-    if (Number.isNaN(num)) return 'Must be a number';
-    if (num < 0 || num > 100) return 'Slippage must be between 0 and 100';
-    return true;
-  };
+    const num = Number(input)
+    if (Number.isNaN(num)) return 'Must be a number'
+    if (num < 0 || num > 100) return 'Slippage must be between 0 and 100'
+    return true
+  }
 
   const validateVaultPercentage = (input: string) => {
-    const num = Number(input);
-    if (Number.isNaN(num)) return 'Must be a number';
-    if (num < 0 || num > 30) return 'Vault percentage must be between 0 and 30%';
-    return true;
-  };
+    const num = Number(input)
+    if (Number.isNaN(num)) return 'Must be a number'
+    if (num < 0 || num > 30) return 'Vault percentage must be between 0 and 30%'
+    return true
+  }
 
   const validateVaultDuration = (input: string) => {
-    const num = Number(input);
-    if (Number.isNaN(num)) return 'Must be a number';
-    if (num < 30) return 'Vault duration must be at least 30 days';
-    return true;
-  };
+    const num = Number(input)
+    if (Number.isNaN(num)) return 'Must be a number'
+    if (num < 30) return 'Vault duration must be at least 30 days'
+    return true
+  }
 
   const validateCreatorReward = (input: string) => {
-    const num = Number(input);
-    if (Number.isNaN(num)) return 'Must be a number';
-    if (num < 0 || num > 80) return 'Creator reward must be between 0 and 80%';
-    return true;
-  };
+    const num = Number(input)
+    if (Number.isNaN(num)) return 'Must be a number'
+    if (num < 0 || num > 80) return 'Creator reward must be between 0 and 80%'
+    return true
+  }
 
   const validateUrl = (input: string) => {
-    if (!input) return true; // Optional
+    if (!input) return true // Optional
     try {
-      new URL(input);
-      return true;
+      new URL(input)
+      return true
     } catch (_e) {
-      return 'Please enter a valid URL';
+      return 'Please enter a valid URL'
     }
-  };
+  }
 
   async function promptUser(): Promise<ClankerAnswers> {
     const questions = [
@@ -228,11 +226,7 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
         prefix: '',
         validate: validateAmount,
         default: (answers: ClankerAnswers) =>
-          answers.pairedTokenChoice === 'WETH'
-            ? '1'
-            : answers.pairedTokenChoice === 'USDC'
-              ? '1000'
-              : '1',
+          answers.pairedTokenChoice === 'WETH' ? '1' : answers.pairedTokenChoice === 'USDC' ? '1000' : '1',
       },
       {
         type: 'input',
@@ -413,45 +407,41 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
         prefix: '',
         validate: validateAddress,
       },
-    ];
+    ]
 
-    const answers = await inquirer.prompt(questions, {});
+    const answers = await inquirer.prompt(questions, {})
 
     // Process custom values
     if (answers.initialMarketCapUsd === 'CUSTOM') {
-      answers.initialMarketCapUsd = answers.customMarketCap || '0';
+      answers.initialMarketCapUsd = answers.customMarketCap || '0'
     }
     if (answers.devBuy.ethAmount === 'CUSTOM') {
-      answers.devBuy.ethAmount = answers.customDevBuy || '0';
+      answers.devBuy.ethAmount = answers.customDevBuy || '0'
     }
 
     // Convert string values to numbers for vault config
     const vaultPercentage =
       answers.vaultConfig.vaultPercentage === 'CUSTOM'
         ? parseInt(answers.customVaultPercentage || '0', 10)
-        : parseInt(answers.vaultConfig.vaultPercentage, 10);
+        : parseInt(answers.vaultConfig.vaultPercentage, 10)
 
     const vaultDuration =
       answers.vaultConfig.durationInDays === 'CUSTOM'
         ? parseInt(answers.customVaultDuration || '31', 10)
-        : parseInt(answers.vaultConfig.durationInDays, 10);
+        : parseInt(answers.vaultConfig.durationInDays, 10)
 
     // Clean up metadata
-    const socialMediaUrls: { platform: string; url: string }[] = [];
-    if (answers.metadata.telegram)
-      socialMediaUrls.push({ platform: 'telegram', url: answers.metadata.telegram });
-    if (answers.metadata.website)
-      socialMediaUrls.push({ platform: 'website', url: answers.metadata.website });
-    if (answers.metadata.twitter)
-      socialMediaUrls.push({ platform: 'twitter', url: answers.metadata.twitter });
-    if (answers.metadata.farcaster)
-      socialMediaUrls.push({ platform: 'farcaster', url: answers.metadata.farcaster });
+    const socialMediaUrls: { platform: string; url: string }[] = []
+    if (answers.metadata.telegram) socialMediaUrls.push({ platform: 'telegram', url: answers.metadata.telegram })
+    if (answers.metadata.website) socialMediaUrls.push({ platform: 'website', url: answers.metadata.website })
+    if (answers.metadata.twitter) socialMediaUrls.push({ platform: 'twitter', url: answers.metadata.twitter })
+    if (answers.metadata.farcaster) socialMediaUrls.push({ platform: 'farcaster', url: answers.metadata.farcaster })
 
     const metadata = {
       description: answers.metadata.description,
       socialMediaUrls,
       auditUrls: [],
-    };
+    }
 
     // Return the final config with proper types
     return {
@@ -471,32 +461,32 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
         interfaceAdmin: answers.rewardsConfig.interfaceAdmin || account.address,
         interfaceRewardRecipient: answers.rewardsConfig.interfaceRewardRecipient || account.address,
       },
-    };
+    }
   }
 
   async function deployToken(answers: ClankerAnswers) {
     try {
       // Create transport with optional custom RPC
-      const transport = RPC_URL ? http(RPC_URL) : http();
+      const transport = RPC_URL ? http(RPC_URL) : http()
 
       const publicClient = createPublicClient({
         chain: base,
         transport,
-      }) as PublicClient;
+      }) as PublicClient
 
       const walletClient = createWalletClient({
         account,
         chain: base,
         transport,
-      });
+      })
 
       // Initialize Clanker SDK
       const clanker = new Clanker({
         wallet: walletClient,
         publicClient,
-      });
+      })
 
-      console.log('\n🔄 Preparing deployment configuration...');
+      console.log('\n🔄 Preparing deployment configuration...')
 
       // Determine quote token address
       const quoteToken =
@@ -504,7 +494,7 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
           ? WETH_ADDRESS
           : answers.pairedTokenChoice === 'USDC'
             ? USDC_ADDRESS
-            : (answers.customPairedToken as `0x${string}`);
+            : (answers.customPairedToken as `0x${string}`)
 
       const token: ClankerTokenV3 = {
         name: answers.name,
@@ -549,56 +539,52 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
           creatorAdmin: answers.rewardsConfig.creatorAdmin || account.address,
           creatorRewardRecipient: answers.rewardsConfig.creatorRewardRecipient || account.address,
           interfaceAdmin: answers.rewardsConfig.interfaceAdmin || account.address,
-          interfaceRewardRecipient:
-            answers.rewardsConfig.interfaceRewardRecipient || account.address,
+          interfaceRewardRecipient: answers.rewardsConfig.interfaceRewardRecipient || account.address,
         },
-      };
-
-      // Deploy token with validated configuration
-      const { txHash, waitForTransaction, error } = await clanker.deploy(token);
-      if (error) {
-        console.error('\n❌ Token configuration validation failed:');
-        console.error({ error });
-        throw new Error('Invalid token configuration');
       }
 
-      console.log(stringify(token, null, 2));
+      // Deploy token with validated configuration
+      const { txHash, waitForTransaction, error } = await clanker.deploy(token)
+      if (error) {
+        console.error('\n❌ Token configuration validation failed:')
+        console.error({ error })
+        throw new Error('Invalid token configuration')
+      }
 
-      console.log(`🚀 Deployment sent: ${txHash}`);
+      console.log(stringify(token, null, 2))
 
-      const { address: tokenAddress } = await waitForTransaction();
-      console.log('\n✨ Deployment successful!');
-      console.log(`📍 Token address: ${tokenAddress}`);
-      console.log('\n🌐 View on:');
-      console.log(`Basescan: https://basescan.org/token/${tokenAddress}`);
-      console.log(`Clanker World: https://clanker.world/clanker/${tokenAddress}`);
+      console.log(`🚀 Deployment sent: ${txHash}`)
 
-      return tokenAddress;
+      const { address: tokenAddress } = await waitForTransaction()
+      console.log('\n✨ Deployment successful!')
+      console.log(`📍 Token address: ${tokenAddress}`)
+      console.log('\n🌐 View on:')
+      console.log(`Basescan: https://basescan.org/token/${tokenAddress}`)
+      console.log(`Clanker World: https://clanker.world/clanker/${tokenAddress}`)
+
+      return tokenAddress
     } catch (error) {
-      console.error(
-        '\n❌ Deployment failed:',
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-      throw error;
+      console.error('\n❌ Deployment failed:', error instanceof Error ? error.message : 'Unknown error')
+      throw error
     }
   }
 
   async function main() {
     // Show header
-    console.clear();
-    console.log(ASCII_ART);
-    console.log('\n🚀 Welcome to the Clanker Token Creator! 🚀\n');
+    console.clear()
+    console.log(ASCII_ART)
+    console.log('\n🚀 Welcome to the Clanker Token Creator! 🚀\n')
 
     // Check environment variables first
     if (!checkEnvironment()) {
-      process.exit(1);
+      process.exit(1)
     }
 
     try {
-      const answers = await promptUser();
+      const answers = await promptUser()
 
-      console.log('\n📝 Review your token configuration:\n');
-      console.log(JSON.stringify(answers, null, 2));
+      console.log('\n📝 Review your token configuration:\n')
+      console.log(JSON.stringify(answers, null, 2))
 
       const { confirm } = await inquirer.prompt([
         {
@@ -608,42 +594,39 @@ RPC_URL=your_custom_rpc_url (if not provided, will use default Base RPC)
           default: false,
           prefix: '',
         },
-      ]);
+      ])
 
       if (confirm) {
-        console.log('\n🔄 Deploying your token...');
+        console.log('\n🔄 Deploying your token...')
         try {
-          const _tokenAddress = await deployToken(answers);
-          console.log(`\n✅ Token deployed to ${_tokenAddress}`);
+          const _tokenAddress = await deployToken(answers)
+          console.log(`\n✅ Token deployed to ${_tokenAddress}`)
 
           // Exit after successful deployment
-          process.exit(0);
+          process.exit(0)
         } catch (error) {
-          console.error(
-            '\n❌ Deployment failed:',
-            error instanceof Error ? error.message : 'Unknown error'
-          );
-          process.exit(1);
+          console.error('\n❌ Deployment failed:', error instanceof Error ? error.message : 'Unknown error')
+          process.exit(1)
         }
       } else {
-        console.log('\n❌ Deployment cancelled');
-        process.exit(0);
+        console.log('\n❌ Deployment cancelled')
+        process.exit(0)
       }
     } catch (error) {
-      console.error('\n❌ Error:', error);
-      process.exit(1);
+      console.error('\n❌ Error:', error)
+      process.exit(1)
     }
   }
 
-  await main();
+  await main()
 }
 
-export default createClanker;
+export default createClanker
 
 // Call the function when the script is run directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   createClanker().catch((error) => {
-    console.error('Failed to create Clanker:', error);
-    process.exit(1);
-  });
+    console.error('Failed to create Clanker:', error)
+    process.exit(1)
+  })
 }

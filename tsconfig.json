@@ -2,8 +2,8 @@
   "compilerOptions": {
     // Target and modules
     "target": "ES2024",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "moduleDetection": "force",
     // Library building
     "declaration": true,

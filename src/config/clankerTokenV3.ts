@@ -1,7 +1,7 @@
-import { isAddress, stringify } from 'viem';
-import { abstract, base } from 'viem/chains';
-import * as z from 'zod/v4';
-import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker.js';
+import { isAddress, stringify } from 'viem'
+import { abstract, base } from 'viem/chains'
+import * as z from 'zod/v4'
+import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker'
 import {
   A0X_ADDRESS,
   ANON_ADDRESS,
@@ -12,16 +12,12 @@ import {
   HIGHER_ADDRESS,
   NATIVE_ADDRESS,
   WETH_ADDRESSES,
-} from '../constants.js';
-import { findVanityAddress } from '../services/vanityAddress.js';
-import { CLANKERS } from '../utils/clankers.js';
-import { exhaustiveGuard } from '../utils/meta.js';
-import {
-  addressSchema,
-  ClankerContextSchema,
-  ClankerMetadataSchema,
-} from '../utils/zod-onchain.js';
-import type { ClankerTokenConverter } from './clankerTokens.js';
+} from '../constants'
+import { findVanityAddress } from '../services/vanityAddress'
+import { CLANKERS } from '../utils/clankers'
+import { exhaustiveGuard } from '../utils/meta'
+import { addressSchema, ClankerContextSchema, ClankerMetadataSchema } from '../utils/zod-onchain'
+import type { ClankerTokenConverter } from './clankerTokens'
 
 /** Clanker v3.1 token definition. */
 const clankerTokenV3 = z.strictObject({
@@ -96,8 +92,8 @@ const clankerTokenV3 = z.strictObject({
     .default({
       creatorReward: 40,
     }),
-});
-export type ClankerTokenV3 = z.input<typeof clankerTokenV3>;
+})
+export type ClankerTokenV3 = z.input<typeof clankerTokenV3>
 
 export const clankerTokenV3Converter: ClankerTokenConverter<
   ClankerTokenV3,
@@ -106,59 +102,45 @@ export const clankerTokenV3Converter: ClankerTokenConverter<
 > = async (
   config: ClankerTokenV3,
   options?: {
-    requestorAddress?: `0x${string}`;
+    requestorAddress?: `0x${string}`
   }
 ) => {
-  const requestorAddress = options?.requestorAddress;
+  const requestorAddress = options?.requestorAddress
   if (!requestorAddress || !isAddress(requestorAddress)) {
-    throw new Error(`Requestor address is invalid ${requestorAddress}`);
+    throw new Error(`Requestor address is invalid ${requestorAddress}`)
   }
 
-  const cfg = clankerTokenV3.parse(config);
+  const cfg = clankerTokenV3.parse(config)
 
   const { desiredPrice, pairAddress } = getDesiredPriceAndPairAddress(
     getTokenPairByAddress(cfg.pool.quoteToken),
     cfg.pool.initialMarketCap
-  );
+  )
 
-  const logBase = 1.0001;
-  const tickSpacing = 200;
+  const logBase = 1.0001
+  const tickSpacing = 200
   // console.log('desiredPrice', desiredPrice);
-  const rawTick = Math.log(desiredPrice) / Math.log(logBase);
-  const initialTick = Math.floor(rawTick / tickSpacing) * tickSpacing;
+  const rawTick = Math.log(desiredPrice) / Math.log(logBase)
+  const initialTick = Math.floor(rawTick / tickSpacing) * tickSpacing
   // console.log('initialTick', initialTick);
 
-  const metadata = stringify(cfg.metadata) || '';
-  const socialContext = stringify(cfg.context);
+  const metadata = stringify(cfg.metadata) || ''
+  const socialContext = stringify(cfg.context)
 
-  const creatorAdmin = cfg.rewards.creatorAdmin ?? requestorAddress;
+  const creatorAdmin = cfg.rewards.creatorAdmin ?? requestorAddress
   const { token: expectedAddress, salt } = await findVanityAddress(
-    [
-      cfg.name,
-      cfg.symbol,
-      DEFAULT_SUPPLY,
-      creatorAdmin,
-      cfg.image,
-      metadata,
-      socialContext,
-      BigInt(cfg.chainId),
-    ],
+    [cfg.name, cfg.symbol, DEFAULT_SUPPLY, creatorAdmin, cfg.image, metadata, socialContext, BigInt(cfg.chainId)],
     creatorAdmin,
     '0x4b07',
     { chainId: cfg.chainId }
-  );
+  )
 
-  const vestingUnlockDate = Math.floor(Date.now() / 1000 + cfg.vault.durationInDays * 24 * 60 * 60);
-  const vestingDuration = cfg.vault.durationInDays
-    ? getRelativeUnixTimestamp(vestingUnlockDate)
-    : 0n;
+  const vestingUnlockDate = Math.floor(Date.now() / 1000 + cfg.vault.durationInDays * 24 * 60 * 60)
+  const vestingDuration = cfg.vault.durationInDays ? getRelativeUnixTimestamp(vestingUnlockDate) : 0n
 
   return {
     abi: Clanker_v3_1_abi,
-    address:
-      cfg.chainId === abstract.id
-        ? CLANKERS.clanker_v3_1_abstract.address
-        : CLANKERS.clanker_v3_1.address,
+    address: cfg.chainId === abstract.id ? CLANKERS.clanker_v3_1_abstract.address : CLANKERS.clanker_v3_1.address,
     functionName: 'deployToken',
     args: [
       {
@@ -196,24 +178,24 @@ export const clankerTokenV3Converter: ClankerTokenConverter<
     value: BigInt(cfg.devBuy.ethAmount * 1e18),
     expectedAddress,
     chainId: cfg.chainId,
-  };
-};
+  }
+}
 
 function getRelativeUnixTimestamp(unixTimestamp: number) {
   // Convert absolute timestamp to duration if provided
-  let vestingDuration = BigInt(0);
+  let vestingDuration = BigInt(0)
   if (unixTimestamp && BigInt(unixTimestamp) > BigInt(0)) {
-    const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-    const targetTimestamp = BigInt(unixTimestamp);
+    const currentTimestamp = BigInt(Math.floor(Date.now() / 1000))
+    const targetTimestamp = BigInt(unixTimestamp)
 
     if (targetTimestamp > currentTimestamp) {
-      vestingDuration = targetTimestamp - currentTimestamp;
+      vestingDuration = targetTimestamp - currentTimestamp
     } else {
-      console.warn('Target timestamp is in the past, using minimum duration');
-      vestingDuration = BigInt(31 * 24 * 60 * 60); // 31 days in seconds
+      console.warn('Target timestamp is in the past, using minimum duration')
+      vestingDuration = BigInt(31 * 24 * 60 * 60) // 31 days in seconds
     }
   }
-  return vestingDuration;
+  return vestingDuration
 }
 
 type TokenPair =
@@ -227,38 +209,38 @@ type TokenPair =
   | 'A0x'
   | 'WMON'
   | 'AbstractEth'
-  | null;
+  | null
 
 const getTokenPairByAddress = (address: `0x${string}`): TokenPair => {
   if (address === WETH_ADDRESSES[base.id]) {
-    return 'WETH';
+    return 'WETH'
   }
   if (address === DEGEN_ADDRESS) {
-    return 'DEGEN';
+    return 'DEGEN'
   }
   if (address === NATIVE_ADDRESS) {
-    return 'NATIVE';
+    return 'NATIVE'
   }
   if (address === CLANKER_ADDRESS) {
-    return 'CLANKER';
+    return 'CLANKER'
   }
   if (address === ANON_ADDRESS) {
-    return 'ANON';
+    return 'ANON'
   }
   if (address === HIGHER_ADDRESS) {
-    return 'HIGHER';
+    return 'HIGHER'
   }
   if (address === CB_BTC_ADDRESS) {
-    return 'BTC';
+    return 'BTC'
   }
   if (address === A0X_ADDRESS) {
-    return 'A0x';
+    return 'A0x'
   }
   if (address === '0x3439153EB7AF838Ad19d56E1571FBD09333C2809') {
-    return 'AbstractEth';
+    return 'AbstractEth'
   }
-  return 'WETH';
-};
+  return 'WETH'
+}
 
 const getDesiredPriceAndPairAddress = (
   pair: TokenPair,
@@ -269,7 +251,7 @@ const getDesiredPriceAndPairAddress = (
       // This is the ratio of token to paired token. In the default case it is WETH.
       // So 0.0000000001 WETH = 1 TOKEN. Since we are deploying with 100_000_000_000 tokens,
       // Then 100000000000 * 0.0000000001 == 10 WETH. So starting market cap is 10 WETH or about 40k.
-      return { desiredPrice: marketCap * 0.00000000001, pairAddress: WETH_ADDRESSES[base.id] };
+      return { desiredPrice: marketCap * 0.00000000001, pairAddress: WETH_ADDRESSES[base.id] }
     case 'DEGEN':
       // So how much DEGEN do we need to get to 10k? At DEGEN price on 12/12 (1.5 cents) that is 6666.66666667 DEGEN.
       // So now, we want 100000000000 of the token to be equal to 6666.66666667 DEGEN.
@@ -278,69 +260,69 @@ const getDesiredPriceAndPairAddress = (
       //
       // Going backwards then we can say, well if we have 100000000000 tokens, then we have -
       // 100000000000 tokens * 0.00000666666667 = 666666.667 DEGEN = $10k
-      return { desiredPrice: 0.00000666666667, pairAddress: DEGEN_ADDRESS };
+      return { desiredPrice: 0.00000666666667, pairAddress: DEGEN_ADDRESS }
     case 'CLANKER': {
-      const clankerPrice = 20; // roughly 60 bucks
-      const desiredMarketCap = 10000; // 10k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyClankerForDesiredMarketCap = desiredMarketCap / clankerPrice; // 166.6777
-      const pricePerTokenInClanker = howManyClankerForDesiredMarketCap / totalSupplyDesired; // 0.000001666777
-      return { desiredPrice: pricePerTokenInClanker, pairAddress: CLANKER_ADDRESS };
+      const clankerPrice = 20 // roughly 60 bucks
+      const desiredMarketCap = 10000 // 10k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyClankerForDesiredMarketCap = desiredMarketCap / clankerPrice // 166.6777
+      const pricePerTokenInClanker = howManyClankerForDesiredMarketCap / totalSupplyDesired // 0.000001666777
+      return { desiredPrice: pricePerTokenInClanker, pairAddress: CLANKER_ADDRESS }
     }
     case 'ANON': {
-      const anonPrice = 0.001;
-      const desiredMarketCap = 10000; // 10k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyAnonForDesiredMarketCap = desiredMarketCap / anonPrice; // 500000
-      const pricePerTokenInAnon = howManyAnonForDesiredMarketCap / totalSupplyDesired; // 0.000005
-      return { desiredPrice: pricePerTokenInAnon, pairAddress: ANON_ADDRESS };
+      const anonPrice = 0.001
+      const desiredMarketCap = 10000 // 10k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyAnonForDesiredMarketCap = desiredMarketCap / anonPrice // 500000
+      const pricePerTokenInAnon = howManyAnonForDesiredMarketCap / totalSupplyDesired // 0.000005
+      return { desiredPrice: pricePerTokenInAnon, pairAddress: ANON_ADDRESS }
     }
     case 'HIGHER': {
-      const higherPrice = 0.008;
-      const desiredMarketCap = 10000; // 10k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyHigherForDesiredMarketCap = desiredMarketCap / higherPrice; // 500000
-      const pricePerTokenInHigher = howManyHigherForDesiredMarketCap / totalSupplyDesired; // 0.000005
-      return { desiredPrice: pricePerTokenInHigher, pairAddress: HIGHER_ADDRESS };
+      const higherPrice = 0.008
+      const desiredMarketCap = 10000 // 10k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyHigherForDesiredMarketCap = desiredMarketCap / higherPrice // 500000
+      const pricePerTokenInHigher = howManyHigherForDesiredMarketCap / totalSupplyDesired // 0.000005
+      return { desiredPrice: pricePerTokenInHigher, pairAddress: HIGHER_ADDRESS }
     }
     case 'BTC': {
-      const cbBtcPrice = 105000; // roughly 105k
-      const desiredMarketCap = 10000; // 10k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyCBBTCForDesiredMarketCap = desiredMarketCap / cbBtcPrice; // ~0.095238 BTC
+      const cbBtcPrice = 105000 // roughly 105k
+      const desiredMarketCap = 10000 // 10k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyCBBTCForDesiredMarketCap = desiredMarketCap / cbBtcPrice // ~0.095238 BTC
       // Adjust for 8 decimals vs 18 decimals (divide by 10^10)
-      const pricePerTokenInCbBtc = howManyCBBTCForDesiredMarketCap / totalSupplyDesired / 10 ** 10;
-      return { desiredPrice: pricePerTokenInCbBtc, pairAddress: CB_BTC_ADDRESS };
+      const pricePerTokenInCbBtc = howManyCBBTCForDesiredMarketCap / totalSupplyDesired / 10 ** 10
+      return { desiredPrice: pricePerTokenInCbBtc, pairAddress: CB_BTC_ADDRESS }
     }
     case 'NATIVE': {
-      const nativePrice = 0.00004; // roughly 2 cents
-      const desiredMarketCap = 10000; // 10k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyNativeForDesiredMarketCap = desiredMarketCap / nativePrice; // 500000
-      const pricePerTokenInNative = howManyNativeForDesiredMarketCap / totalSupplyDesired; // 0.000005
-      return { desiredPrice: pricePerTokenInNative, pairAddress: NATIVE_ADDRESS };
+      const nativePrice = 0.00004 // roughly 2 cents
+      const desiredMarketCap = 10000 // 10k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyNativeForDesiredMarketCap = desiredMarketCap / nativePrice // 500000
+      const pricePerTokenInNative = howManyNativeForDesiredMarketCap / totalSupplyDesired // 0.000005
+      return { desiredPrice: pricePerTokenInNative, pairAddress: NATIVE_ADDRESS }
     }
     case 'A0x': {
-      const a0xPrice = 0.00000073; // roughly 0.000000730
-      const desiredMarketCap = 5000; // 5k
-      const totalSupplyDesired = 100_000_000_000; // total coin supply (100 billion)
-      const howManyA0xForDesiredMarketCap = desiredMarketCap / a0xPrice; // 500000
-      const pricePerTokenInA0x = howManyA0xForDesiredMarketCap / totalSupplyDesired; // 0.000005
-      return { desiredPrice: pricePerTokenInA0x, pairAddress: A0X_ADDRESS };
+      const a0xPrice = 0.00000073 // roughly 0.000000730
+      const desiredMarketCap = 5000 // 5k
+      const totalSupplyDesired = 100_000_000_000 // total coin supply (100 billion)
+      const howManyA0xForDesiredMarketCap = desiredMarketCap / a0xPrice // 500000
+      const pricePerTokenInA0x = howManyA0xForDesiredMarketCap / totalSupplyDesired // 0.000005
+      return { desiredPrice: pricePerTokenInA0x, pairAddress: A0X_ADDRESS }
     }
     case 'WMON':
       return {
         desiredPrice: 0.00000000001,
         pairAddress: '0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701',
-      };
+      }
     case 'AbstractEth':
       return {
         desiredPrice: marketCap * 0.00000000001,
         pairAddress: '0x3439153EB7AF838Ad19d56E1571FBD09333C2809',
-      };
+      }
     case null:
-      return { desiredPrice: 0.0000000001, pairAddress: WETH_ADDRESSES[base.id] };
+      return { desiredPrice: 0.0000000001, pairAddress: WETH_ADDRESSES[base.id] }
     default:
-      exhaustiveGuard(pair);
+      exhaustiveGuard(pair)
   }
-};
+}

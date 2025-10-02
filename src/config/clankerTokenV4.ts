@@ -1,36 +1,19 @@
-import {
-  type Address,
-  encodeAbiParameters,
-  isAddressEqual,
-  stringify,
-  zeroAddress,
-  zeroHash,
-} from 'viem';
-import * as z from 'zod/v4';
-import { Clanker_v4_abi } from '../abi/v4/Clanker.js';
-import { ClankerAirdropV2_Instantiation_v4_abi } from '../abi/v4/ClankerAirdropV2.js';
-import { ClankerHook_DynamicFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookDynamicFee.js';
-import { ClankerHook_StaticFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookStaticFee.js';
-import { ClankerLpLocker_Instantiation_v4_abi } from '../abi/v4/ClankerLocker.js';
-import { ClankerUniV4EthDevBuy_Instantiation_v4_abi } from '../abi/v4/ClankerUniV4EthDevBuy.js';
-import { ClankerVault_Instantiation_v4_abi } from '../abi/v4/ClankerVault.js';
-import { Clanker_MevSniperAuction_InitData_v4_1_abi } from '../abi/v4.1/ClankerMevSniperAuction.js';
-import { Clanker_PoolInitializationData_v4_1_abi } from '../abi/v4.1/ClankerPool.js';
-import { DEFAULT_SUPPLY, POOL_POSITIONS, WETH_ADDRESSES } from '../constants.js';
-import { findVanityAddressV4 } from '../services/vanityAddress.js';
-import {
-  Chains,
-  type ClankerDeployment,
-  clankerConfigFor,
-  type RelatedV4,
-} from '../utils/clankers.js';
-import {
-  addressSchema,
-  ClankerContextSchema,
-  ClankerMetadataSchema,
-  hexSchema,
-} from '../utils/zod-onchain.js';
-import type { ClankerTokenConverter } from './clankerTokens.js';
+import { type Address, encodeAbiParameters, isAddressEqual, stringify, zeroAddress, zeroHash } from 'viem'
+import * as z from 'zod/v4'
+import { Clanker_v4_abi } from '../abi/v4/Clanker'
+import { ClankerAirdropV2_Instantiation_v4_abi } from '../abi/v4/ClankerAirdropV2'
+import { ClankerHook_DynamicFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookDynamicFee'
+import { ClankerHook_StaticFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookStaticFee'
+import { ClankerLpLocker_Instantiation_v4_abi } from '../abi/v4/ClankerLocker'
+import { ClankerUniV4EthDevBuy_Instantiation_v4_abi } from '../abi/v4/ClankerUniV4EthDevBuy'
+import { ClankerVault_Instantiation_v4_abi } from '../abi/v4/ClankerVault'
+import { Clanker_MevSniperAuction_InitData_v4_1_abi } from '../abi/v4.1/ClankerMevSniperAuction'
+import { Clanker_PoolInitializationData_v4_1_abi } from '../abi/v4.1/ClankerPool'
+import { DEFAULT_SUPPLY, POOL_POSITIONS, WETH_ADDRESSES } from '../constants'
+import { findVanityAddressV4 } from '../services/vanityAddress'
+import { Chains, type ClankerDeployment, clankerConfigFor, type RelatedV4 } from '../utils/clankers'
+import { addressSchema, ClankerContextSchema, ClankerMetadataSchema, hexSchema } from '../utils/zod-onchain'
+import type { ClankerTokenConverter } from './clankerTokens'
 
 // Null DevBuy configuration when paired token is WETH
 const NULL_DEVBUY_POOL_CONFIG = {
@@ -39,14 +22,14 @@ const NULL_DEVBUY_POOL_CONFIG = {
   fee: 0,
   tickSpacing: 0,
   hooks: zeroAddress,
-} as const;
+} as const
 
-export const FeeIn = ['Both', 'Paired', 'Clanker'] as const;
+export const FeeIn = ['Both', 'Paired', 'Clanker'] as const
 const FeeInToInt: Record<(typeof FeeIn)[number], number> = {
   Both: 0,
   Paired: 1,
   Clanker: 2,
-};
+}
 
 /** Clanker v4 token definition. */
 const clankerTokenV4 = z.strictObject({
@@ -114,13 +97,9 @@ const clankerTokenV4 = z.strictObject({
     .refine((v) => v.positions.some((p) => p.tickLower === v.tickIfToken0IsClanker), {
       error: 'One position must be touching the starting tick.',
     })
-    .refine(
-      (v) =>
-        v.positions.every(
-          (p) => p.tickLower % v.tickSpacing === 0 && p.tickUpper % v.tickSpacing === 0
-        ),
-      { error: 'All positions must have ticks that are multiples of the tick spacing.' }
-    ),
+    .refine((v) => v.positions.every((p) => p.tickLower % v.tickSpacing === 0 && p.tickUpper % v.tickSpacing === 0), {
+      error: 'All positions must have ticks that are multiples of the tick spacing.',
+    }),
   /** Token locker */
   locker: z
     .object({
@@ -260,15 +239,15 @@ const clankerTokenV4 = z.strictObject({
     .optional(),
   /** Whether or not to enable the "0xb07" address suffix. */
   vanity: z.boolean().default(false),
-});
-export type ClankerTokenV4 = z.input<typeof clankerTokenV4>;
+})
+export type ClankerTokenV4 = z.input<typeof clankerTokenV4>
 
 export const clankerTokenV4Converter: ClankerTokenConverter<
   ClankerTokenV4,
   typeof Clanker_v4_abi,
   'deployToken'
 > = async (config: ClankerTokenV4) => {
-  const cfg = clankerTokenV4.parse(config);
+  const cfg = clankerTokenV4.parse(config)
 
   if (!cfg.rewards) {
     cfg.rewards = {
@@ -280,29 +259,20 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
           token: 'Both',
         },
       ],
-    };
+    }
   }
 
-  const metadata = stringify(cfg.metadata) || '';
-  const socialContext = stringify(cfg.context);
+  const metadata = stringify(cfg.metadata) || ''
+  const socialContext = stringify(cfg.context)
 
-  const clankerConfig = clankerConfigFor<ClankerDeployment<RelatedV4>>(cfg.chainId, 'clanker_v4');
+  const clankerConfig = clankerConfigFor<ClankerDeployment<RelatedV4>>(cfg.chainId, 'clanker_v4')
   if (!clankerConfig?.related) {
-    throw new Error(`No clanker v4 configuration for chain ${cfg.chainId}`);
+    throw new Error(`No clanker v4 configuration for chain ${cfg.chainId}`)
   }
 
   const { salt, token: expectedAddress } = cfg.vanity
     ? await findVanityAddressV4(
-        [
-          cfg.name,
-          cfg.symbol,
-          DEFAULT_SUPPLY,
-          cfg.tokenAdmin,
-          cfg.image,
-          metadata,
-          socialContext,
-          BigInt(cfg.chainId),
-        ],
+        [cfg.name, cfg.symbol, DEFAULT_SUPPLY, cfg.tokenAdmin, cfg.image, metadata, socialContext, BigInt(cfg.chainId)],
         cfg.tokenAdmin,
         '0x4b07',
         clankerConfig
@@ -310,34 +280,32 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
     : {
         salt: zeroHash,
         token: undefined,
-      };
+      }
 
-  const airdropAmount = BigInt(cfg.airdrop?.amount || 0) * BigInt(1e18);
+  const airdropAmount = BigInt(cfg.airdrop?.amount || 0) * BigInt(1e18)
   // Ensure that we don't undercount the amount needed in the airdrop. Better that we allocate 1bp extra to
   // the airdrop extension than allocate too little.
   const bpsAirdropped =
-    (airdropAmount * 10_000n) / DEFAULT_SUPPLY +
-    ((airdropAmount * 10_000n) % DEFAULT_SUPPLY ? 1n : 0n);
-  const roundingVerificationAirdrop = (bpsAirdropped * DEFAULT_SUPPLY) / 10_000n;
+    (airdropAmount * 10_000n) / DEFAULT_SUPPLY + ((airdropAmount * 10_000n) % DEFAULT_SUPPLY ? 1n : 0n)
+  const roundingVerificationAirdrop = (bpsAirdropped * DEFAULT_SUPPLY) / 10_000n
 
-  const roundedAirdropTooLow = airdropAmount > roundingVerificationAirdrop;
+  const roundedAirdropTooLow = airdropAmount > roundingVerificationAirdrop
   if (roundedAirdropTooLow) {
     // Error if the requested airdrop amount is more than the rounded amount.
     throw new Error(
       `Precision error for airdrop. Expected ${airdropAmount} but only ${roundingVerificationAirdrop} (${bpsAirdropped / 10_000n}%) allocated. Difference ${airdropAmount - roundingVerificationAirdrop}.`
-    );
+    )
   }
 
-  const roundedAirdropTooHigh =
-    ((roundingVerificationAirdrop - airdropAmount) * 10_000n) / DEFAULT_SUPPLY > 1n;
+  const roundedAirdropTooHigh = ((roundingVerificationAirdrop - airdropAmount) * 10_000n) / DEFAULT_SUPPLY > 1n
   if (roundedAirdropTooHigh) {
     // Error if the `roundingVerificationAirdrop` has a value more than 1bps away from the requested airdrop amount
     throw new Error(
       `Precision error for airdrop. Difference ${roundingVerificationAirdrop - airdropAmount} is too large.`
-    );
+    )
   }
 
-  const { hook, poolData } = encodeFeeConfig(cfg, clankerConfig);
+  const { hook, poolData } = encodeFeeConfig(cfg, clankerConfig)
 
   return {
     address: clankerConfig.address,
@@ -370,8 +338,7 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
           positionBps: cfg.pool.positions.map(({ positionBps }) => positionBps),
         },
         poolConfig: {
-          pairedToken:
-            cfg.pool.pairedToken === 'WETH' ? WETH_ADDRESSES[cfg.chainId] : cfg.pool.pairedToken,
+          pairedToken: cfg.pool.pairedToken === 'WETH' ? WETH_ADDRESSES[cfg.chainId] : cfg.pool.pairedToken,
           tickIfToken0IsClanker: cfg.pool.tickIfToken0IsClanker,
           tickSpacing: cfg.pool.tickSpacing,
           hook: hook,
@@ -442,8 +409,8 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
     value: cfg.devBuy ? BigInt(cfg.devBuy?.ethAmount * 1e18) : 0n,
     expectedAddress,
     chainId: cfg.chainId,
-  };
-};
+  }
+}
 
 /**
  * Encode a fee configuration for Clanker v4.
@@ -456,10 +423,10 @@ export function encodeFeeConfig(
   tokenConfig: z.infer<typeof clankerTokenV4>,
   clankerConfig: ClankerDeployment<RelatedV4>
 ): {
-  hook: Address;
-  poolData: `0x${string}`;
+  hook: Address
+  poolData: `0x${string}`
 } {
-  const config = tokenConfig.fees;
+  const config = tokenConfig.fees
 
   // Note - Fees hooks don't use bps for all units. Some are uniBps (bps * 100), for example:
   // - 1_000_000 = 100%
@@ -470,7 +437,7 @@ export function encodeFeeConfig(
     const feeData = encodeAbiParameters(ClankerHook_StaticFee_Instantiation_v4_abi, [
       config.clankerFee * 100, // uniBps
       config.pairedFee * 100, // uniBps
-    ]);
+    ])
 
     if (clankerConfig.related.feeStaticHookV2) {
       return {
@@ -482,13 +449,13 @@ export function encodeFeeConfig(
             feeData,
           },
         ]),
-      };
+      }
     }
 
     return {
       hook: clankerConfig.related.feeStaticHook,
       poolData: feeData,
-    };
+    }
   }
 
   if (config.type === 'dynamic') {
@@ -500,7 +467,7 @@ export function encodeFeeConfig(
       config.resetTickFilter,
       BigInt(config.feeControlNumerator),
       config.decayFilterBps,
-    ]);
+    ])
 
     if (clankerConfig.related.feeDynamicHookV2) {
       return {
@@ -512,14 +479,14 @@ export function encodeFeeConfig(
             feeData,
           },
         ]),
-      };
+      }
     }
 
     return {
       hook: clankerConfig.related.feeDynamicHook,
       poolData: feeData,
-    };
+    }
   }
 
-  throw new Error('Invalid config type');
+  throw new Error('Invalid config type')
 }

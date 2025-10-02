@@ -1,15 +1,15 @@
-import type { ExtractAbiErrorNames } from 'abitype';
-import { BaseError, ContractFunctionRevertedError, InsufficientFundsError } from 'viem';
-import type { ClankerContract } from './clanker-contracts.js';
+import type { ExtractAbiErrorNames } from 'abitype'
+import { BaseError, ContractFunctionRevertedError, InsufficientFundsError } from 'viem'
+import type { ClankerContract } from './clanker-contracts'
 
-type ClankerErrorName = ExtractAbiErrorNames<ClankerContract>;
+type ClankerErrorName = ExtractAbiErrorNames<ClankerContract>
 
-type ClankerErrorType = 'caller' | 'state' | 'unknown';
+type ClankerErrorType = 'caller' | 'state' | 'unknown'
 type ClankerErrorData = {
-  type: ClankerErrorType;
-  label: string;
-  rawName: string;
-};
+  type: ClankerErrorType
+  label: string
+  rawName: string
+}
 
 export class ClankerError extends Error {
   static unknown(e: Error, name?: string) {
@@ -17,14 +17,14 @@ export class ClankerError extends Error {
       type: 'unknown',
       label: 'Something went wrong',
       rawName: name || 'unknown',
-    });
+    })
   }
 
   constructor(
     readonly error: Error,
     readonly data: ClankerErrorData
   ) {
-    super(data.label);
+    super(data.label)
   }
 }
 
@@ -39,7 +39,7 @@ const SignatureToError: Record<`0x${string}`, ClankerErrorData> = {
     label: 'Too little received (likely dev buy).',
     rawName: 'V4TooLittleReceived',
   },
-};
+}
 
 const ErrorMapping: Partial<Record<ClankerErrorName, ClankerErrorData>> = {
   NoFeesToClaim: {
@@ -57,7 +57,7 @@ const ErrorMapping: Partial<Record<ClankerErrorName, ClankerErrorData>> = {
     label: 'Base fee is set too low',
     rawName: 'BaseFeeTooLow',
   },
-};
+}
 
 export const understandErrorCode = (e: `0x${string}`): ClankerError => {
   return new ClankerError(
@@ -67,34 +67,34 @@ export const understandErrorCode = (e: `0x${string}`): ClankerError => {
       label: 'Contract error.',
       rawName: `Unknown hex: ${e}`,
     }
-  );
-};
+  )
+}
 
 export const understandError = (e: unknown): ClankerError => {
-  if (!(e instanceof Error)) return ClankerError.unknown(new Error(`${e}`));
-  if (!(e instanceof BaseError)) return ClankerError.unknown(e);
+  if (!(e instanceof Error)) return ClankerError.unknown(new Error(`${e}`))
+  if (!(e instanceof BaseError)) return ClankerError.unknown(e)
 
-  const revertError = e.walk((e) => e instanceof ContractFunctionRevertedError);
+  const revertError = e.walk((e) => e instanceof ContractFunctionRevertedError)
   if (revertError instanceof ContractFunctionRevertedError) {
-    const errorName = revertError.data?.errorName ?? '';
+    const errorName = revertError.data?.errorName ?? ''
 
-    const mapping = ErrorMapping[errorName as ClankerErrorName];
-    if (mapping) return new ClankerError(e, mapping);
+    const mapping = ErrorMapping[errorName as ClankerErrorName]
+    if (mapping) return new ClankerError(e, mapping)
 
-    const signatureToError = SignatureToError[revertError.signature || '0x'];
-    if (signatureToError) return new ClankerError(e, signatureToError);
+    const signatureToError = SignatureToError[revertError.signature || '0x']
+    if (signatureToError) return new ClankerError(e, signatureToError)
 
-    return ClankerError.unknown(e, errorName);
+    return ClankerError.unknown(e, errorName)
   }
 
-  const fundsError = e.walk((e) => e instanceof InsufficientFundsError);
+  const fundsError = e.walk((e) => e instanceof InsufficientFundsError)
   if (fundsError instanceof InsufficientFundsError) {
     return new ClankerError(fundsError, {
       type: 'caller',
       label: 'Insufficient funds.',
       rawName: 'InsufficientFundsError',
-    });
+    })
   }
 
-  return ClankerError.unknown(e);
-};
+  return ClankerError.unknown(e)
+}

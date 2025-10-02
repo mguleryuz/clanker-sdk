@@ -1,1 +1,1 @@
-export * from './airdrop.js';
+export * from './airdrop'

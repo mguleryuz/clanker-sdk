@@ -1,29 +1,29 @@
-import { type Address, encodeAbiParameters } from 'viem';
-import { CLANKERS } from '../utils/clankers.js';
-import type { IClankerExtension } from './IClankerExtension.js';
+import { type Address, encodeAbiParameters } from 'viem'
+import { CLANKERS } from '../utils/clankers'
+import type { IClankerExtension } from './IClankerExtension'
 
 export interface DevBuyExtensionDataV4 {
   pairedTokenPoolKey: {
-    currency0: Address;
-    currency1: Address;
-    fee: number;
-    tickSpacing: number;
-    hooks: Address;
-  };
-  pairedTokenAmountOutMinimum: bigint;
-  recipient: Address;
+    currency0: Address
+    currency1: Address
+    fee: number
+    tickSpacing: number
+    hooks: Address
+  }
+  pairedTokenAmountOutMinimum: bigint
+  recipient: Address
 }
 
 export class DevBuyExtension implements IClankerExtension {
-  readonly address = CLANKERS.clanker_v4.related.devbuy;
-  readonly name = 'DevBuy';
-  readonly description = 'Performs an initial swap of the token using passed-in ETH';
-  readonly maxAllocationPercentage = 90;
-  readonly allowMultiple = true;
+  readonly address = CLANKERS.clanker_v4.related.devbuy
+  readonly name = 'DevBuy'
+  readonly description = 'Performs an initial swap of the token using passed-in ETH'
+  readonly maxAllocationPercentage = 90
+  readonly allowMultiple = true
 
   encodeExtensionData(data: DevBuyExtensionDataV4): `0x${string}` {
     if (!this.validateExtensionData(data)) {
-      throw new Error('Invalid devBuy extension data');
+      throw new Error('Invalid devBuy extension data')
     }
 
     return encodeAbiParameters(
@@ -52,12 +52,12 @@ export class DevBuyExtension implements IClankerExtension {
         data.pairedTokenAmountOutMinimum,
         data.recipient,
       ]
-    );
+    )
   }
 
   validateExtensionData(data: unknown): boolean {
-    if (!data || typeof data !== 'object') return false;
-    const devBuyData = data as DevBuyExtensionDataV4;
+    if (!data || typeof data !== 'object') return false
+    const devBuyData = data as DevBuyExtensionDataV4
 
     return (
       typeof devBuyData.pairedTokenPoolKey === 'object' &&
@@ -69,6 +69,6 @@ export class DevBuyExtension implements IClankerExtension {
       typeof devBuyData.pairedTokenPoolKey.hooks === 'string' &&
       typeof devBuyData.pairedTokenAmountOutMinimum === 'bigint' &&
       typeof devBuyData.recipient === 'string'
-    );
+    )
   }
 }

@@ -1,53 +1,53 @@
-import type { Abi } from 'viem';
-import { abstract, arbitrum, base, baseSepolia, monadTestnet, unichain } from 'viem/chains';
-import { Clanker_v0_abi } from '../abi/v0/Clanker.js';
-import { Clanker_v1_abi } from '../abi/v1/Clanker.js';
-import { Clanker_v2_abi } from '../abi/v2/Clanker.js';
-import { Clanker_v3_abi } from '../abi/v3/Clanker.js';
-import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker.js';
-import { Clanker_v4_abi } from '../abi/v4/Clanker.js';
+import type { Abi } from 'viem'
+import { abstract, arbitrum, base, baseSepolia, monadTestnet, unichain } from 'viem/chains'
+import { Clanker_v0_abi } from '../abi/v0/Clanker'
+import { Clanker_v1_abi } from '../abi/v1/Clanker'
+import { Clanker_v2_abi } from '../abi/v2/Clanker'
+import { Clanker_v3_abi } from '../abi/v3/Clanker'
+import { Clanker_v3_1_abi } from '../abi/v3.1/Clanker'
+import { Clanker_v4_abi } from '../abi/v4/Clanker'
 
-type RelatedV0 = undefined;
+type RelatedV0 = undefined
 
-type RelatedV1 = undefined;
+type RelatedV1 = undefined
 
 type RelatedV2 = {
-  locker: `0x${string}`;
-};
+  locker: `0x${string}`
+}
 
 type RelatedV3 = {
-  locker: `0x${string}`;
-};
+  locker: `0x${string}`
+}
 
 export type RelatedV3_1 = {
-  locker: `0x${string}`;
-  vault: `0x${string}`;
-};
+  locker: `0x${string}`
+  vault: `0x${string}`
+}
 
 export type RelatedV4 = {
-  locker: `0x${string}`;
-  vault: `0x${string}`;
-  airdrop: `0x${string}`;
-  devbuy: `0x${string}`;
-  mevModule: `0x${string}`;
-  feeLocker: `0x${string}`;
-  feeStaticHook: `0x${string}`;
-  feeDynamicHook: `0x${string}`;
+  locker: `0x${string}`
+  vault: `0x${string}`
+  airdrop: `0x${string}`
+  devbuy: `0x${string}`
+  mevModule: `0x${string}`
+  feeLocker: `0x${string}`
+  feeStaticHook: `0x${string}`
+  feeDynamicHook: `0x${string}`
 
-  mevModuleV2?: `0x${string}`;
-  feeStaticHookV2?: `0x${string}`;
-  feeDynamicHookV2?: `0x${string}`;
-};
+  mevModuleV2?: `0x${string}`
+  feeStaticHookV2?: `0x${string}`
+  feeDynamicHookV2?: `0x${string}`
+}
 
-type RelatedAddresses = RelatedV0 | RelatedV1 | RelatedV2 | RelatedV3 | RelatedV4;
+type RelatedAddresses = RelatedV0 | RelatedV1 | RelatedV2 | RelatedV3 | RelatedV4
 
 export type ClankerDeployment<T extends RelatedAddresses = RelatedAddresses> = {
-  abi: Abi;
-  chainId: number;
-  type: string;
-  address: `0x${string}`;
-  related: T;
-};
+  abi: Abi
+  chainId: number
+  type: string
+  address: `0x${string}`
+  related: T
+}
 
 export const CLANKERS = {
   clanker_v0: {
@@ -181,24 +181,24 @@ export const CLANKERS = {
       feeDynamicHook: '0x9b37A43422D7bBD4C8B231be11E50AD1acE828CC',
     } satisfies RelatedV4,
   },
-} as const satisfies Record<string, ClankerDeployment>;
+} as const satisfies Record<string, ClankerDeployment>
 
-export type Clankers = typeof CLANKERS;
+export type Clankers = typeof CLANKERS
 
-export type Type = Clankers[keyof Clankers]['type'];
+export type Type = Clankers[keyof Clankers]['type']
 
-export type Chain = Clankers[keyof Clankers]['chainId'];
-export const Chains = [...new Set(Object.values(CLANKERS).map(({ chainId }) => chainId))];
+export type Chain = Clankers[keyof Clankers]['chainId']
+export const Chains = [...new Set(Object.values(CLANKERS).map(({ chainId }) => chainId))]
 
 /** All deployments of Clanker */
 export const ClankerDeployments = Object.values(CLANKERS).reduce(
   (agg, cur) => {
-    if (!agg[cur.chainId]) agg[cur.chainId] = {};
-    agg[cur.chainId][cur.type] = cur;
-    return agg;
+    if (!agg[cur.chainId]) agg[cur.chainId] = {}
+    agg[cur.chainId][cur.type] = cur
+    return agg
   },
   {} as Record<Chain, Partial<Record<Type, ClankerDeployment>>>
-);
+)
 
 /**
  * Get a specific clanker deployment.
@@ -207,11 +207,6 @@ export const ClankerDeployments = Object.values(CLANKERS).reduce(
  * @param type Version of the deployment.
  * @returns The deployment if it exists.
  */
-export const clankerConfigFor = <T extends ClankerDeployment = ClankerDeployment>(
-  chainId: Chain,
-  type: Type
-) => {
-  return Object.values(CLANKERS).find((cfg) => cfg.chainId === chainId && cfg.type === type) as
-    | T
-    | undefined;
-};
+export const clankerConfigFor = <T extends ClankerDeployment = ClankerDeployment>(chainId: Chain, type: Type) => {
+  return Object.values(CLANKERS).find((cfg) => cfg.chainId === chainId && cfg.type === type) as T | undefined
+}
