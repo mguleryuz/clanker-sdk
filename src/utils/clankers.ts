@@ -1,5 +1,14 @@
 import type { Abi } from 'viem'
-import { abstract, arbitrum, base, baseSepolia, monadTestnet, unichain, anvil } from 'viem/chains'
+import {
+  abstract,
+  arbitrum,
+  base,
+  baseSepolia,
+  bsc,
+  monadTestnet,
+  unichain,
+  anvil,
+} from 'viem/chains'
 import { Clanker_v0_abi } from '../abi/v0/Clanker'
 import { Clanker_v1_abi } from '../abi/v1/Clanker'
 import { Clanker_v2_abi } from '../abi/v2/Clanker'
@@ -135,19 +144,31 @@ export const CLANKERS = {
     abi: Clanker_v4_abi,
     chainId: anvil.id,
     type: 'clanker_v4',
-    address: (process.env.NEXT_PUBLIC_CLANKER_FACTORY_ANVIL || '0xE85A59c628F7d27878ACeB4bf3b35733630083a9') as `0x${string}`,
+    address: (process.env.NEXT_PUBLIC_CLANKER_FACTORY_ANVIL ||
+      '0xE85A59c628F7d27878ACeB4bf3b35733630083a9') as `0x${string}`,
     related: {
-      locker: (process.env.NEXT_PUBLIC_CLANKER_LP_LOCKER_ANVIL || '0x63D2DfEA64b3433F4071A98665bcD7Ca14d93496') as `0x${string}`,
-      vault: (process.env.NEXT_PUBLIC_CLANKER_VAULT_ANVIL || '0x8E845EAd15737bF71904A30BdDD3aEE76d6ADF6C') as `0x${string}`,
-      airdrop: (process.env.NEXT_PUBLIC_CLANKER_AIRDROP_ANVIL || '0xf652B3610D75D81871bf96DB50825d9af28391E0') as `0x${string}`,
-      devbuy: (process.env.NEXT_PUBLIC_CLANKER_DEVBUY_ANVIL || '0x1331f0788F9c08C8F38D52c7a1152250A9dE00be') as `0x${string}`,
-      mevModule: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_ANVIL || '0xFdc013ce003980889cFfd66b0c8329545ae1d1E8') as `0x${string}`,
-      mevModuleV2: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_V2_ANVIL || '0xebB25BB797D82CB78E1bc70406b13233c0854413') as `0x${string}`,
-      feeLocker: (process.env.NEXT_PUBLIC_CLANKER_FEE_LOCKER_ANVIL || '0xF3622742b1E446D92e45E22923Ef11C2fcD55D68') as `0x${string}`,
-      feeStaticHook: (process.env.NEXT_PUBLIC_CLANKER_STATIC_HOOK_ANVIL || '0xDd5EeaFf7BD481AD55Db083062b13a3cdf0A68CC') as `0x${string}`,
-      feeStaticHookV2: (process.env.NEXT_PUBLIC_CLANKER_STATIC_HOOK_V2_ANVIL || '0xb429d62f8f3bFFb98CdB9569533eA23bF0Ba28CC') as `0x${string}`,
-      feeDynamicHook: (process.env.NEXT_PUBLIC_CLANKER_DYNAMIC_HOOK_ANVIL || '0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC') as `0x${string}`,
-      feeDynamicHookV2: (process.env.NEXT_PUBLIC_CLANKER_DYNAMIC_HOOK_V2_ANVIL || '0xd60D6B218116cFd801E28F78d011a203D2b068Cc') as `0x${string}`,
+      locker: (process.env.NEXT_PUBLIC_CLANKER_LP_LOCKER_ANVIL ||
+        '0x63D2DfEA64b3433F4071A98665bcD7Ca14d93496') as `0x${string}`,
+      vault: (process.env.NEXT_PUBLIC_CLANKER_VAULT_ANVIL ||
+        '0x8E845EAd15737bF71904A30BdDD3aEE76d6ADF6C') as `0x${string}`,
+      airdrop: (process.env.NEXT_PUBLIC_CLANKER_AIRDROP_ANVIL ||
+        '0xf652B3610D75D81871bf96DB50825d9af28391E0') as `0x${string}`,
+      devbuy: (process.env.NEXT_PUBLIC_CLANKER_DEVBUY_ANVIL ||
+        '0x1331f0788F9c08C8F38D52c7a1152250A9dE00be') as `0x${string}`,
+      mevModule: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_ANVIL ||
+        '0xFdc013ce003980889cFfd66b0c8329545ae1d1E8') as `0x${string}`,
+      mevModuleV2: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_V2_ANVIL ||
+        '0xebB25BB797D82CB78E1bc70406b13233c0854413') as `0x${string}`,
+      feeLocker: (process.env.NEXT_PUBLIC_CLANKER_FEE_LOCKER_ANVIL ||
+        '0xF3622742b1E446D92e45E22923Ef11C2fcD55D68') as `0x${string}`,
+      feeStaticHook: (process.env.NEXT_PUBLIC_CLANKER_STATIC_HOOK_ANVIL ||
+        '0xDd5EeaFf7BD481AD55Db083062b13a3cdf0A68CC') as `0x${string}`,
+      feeStaticHookV2: (process.env.NEXT_PUBLIC_CLANKER_STATIC_HOOK_V2_ANVIL ||
+        '0xb429d62f8f3bFFb98CdB9569533eA23bF0Ba28CC') as `0x${string}`,
+      feeDynamicHook: (process.env.NEXT_PUBLIC_CLANKER_DYNAMIC_HOOK_ANVIL ||
+        '0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC') as `0x${string}`,
+      feeDynamicHookV2: (process.env.NEXT_PUBLIC_CLANKER_DYNAMIC_HOOK_V2_ANVIL ||
+        '0xd60D6B218116cFd801E28F78d011a203D2b068Cc') as `0x${string}`,
     } satisfies RelatedV4,
   },
   clanker_v4_sepolia: {
@@ -200,6 +221,25 @@ export const CLANKERS = {
       feeDynamicHook: '0x9b37A43422D7bBD4C8B231be11E50AD1acE828CC',
     } satisfies RelatedV4,
   },
+  clanker_v4_bnb: {
+    abi: Clanker_v4_abi,
+    chainId: bsc.id,
+    type: 'clanker_v4',
+    address: '0xFb28402068d716C82D8Cd80567d1B0e2539AdFB2',
+    related: {
+      locker: '0xCe715ae5847bb485E6Df97fc3f2bEe153872b75D',
+      vault: '0xB048F8EdCB329777596f08Bc0183111486A91Bf8',
+      airdrop: '0xFcB23De51AE75530817A2F97046DBA12C50132A6',
+      devbuy: '0x95EF9498bC505CD7fDBB048cCD78ebBA98D9F1dD',
+      mevModule: '0x7Bfc96194Bd92e625747FB4099D5e88471D9190C',
+      mevModuleV2: '0x9D728244b31FE8f36cc23385Ea0Ac859f0121a79',
+      feeLocker: '0x347d05347d07DCfb376Aa792529412F53F17237E',
+      feeStaticHook: '0xB3eA59248e7d7Dbb9e0Ea5f1f8a5b0D33ab5E8cC',
+      feeStaticHookV2: '0x0fcb2c049786054fD35330db361A75a88903a8cC',
+      feeDynamicHook: '0x65Ba941CDFec82AF6686784eCAF4bC1b45F328cC',
+      feeDynamicHookV2: '0xD0c5728911A9F67efe47cf25411c2e052a2fE8cC',
+    } satisfies RelatedV4,
+  },
 } as const satisfies Record<string, ClankerDeployment>
 
 export type Clankers = typeof CLANKERS
@@ -226,6 +266,11 @@ export const ClankerDeployments = Object.values(CLANKERS).reduce(
  * @param type Version of the deployment.
  * @returns The deployment if it exists.
  */
-export const clankerConfigFor = <T extends ClankerDeployment = ClankerDeployment>(chainId: Chain, type: Type) => {
-  return Object.values(CLANKERS).find((cfg) => cfg.chainId === chainId && cfg.type === type) as T | undefined
+export const clankerConfigFor = <T extends ClankerDeployment = ClankerDeployment>(
+  chainId: Chain,
+  type: Type
+) => {
+  return Object.values(CLANKERS).find((cfg) => cfg.chainId === chainId && cfg.type === type) as
+    | T
+    | undefined
 }
