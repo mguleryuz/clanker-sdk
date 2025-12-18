@@ -157,6 +157,8 @@ export const CLANKERS = {
         '0xf652B3610D75D81871bf96DB50825d9af28391E0') as `0x${string}`,
       devbuy: (process.env.NEXT_PUBLIC_CLANKER_DEVBUY_ANVIL ||
         '0x1331f0788F9c08C8F38D52c7a1152250A9dE00be') as `0x${string}`,
+      devbuyV3: (process.env.NEXT_PUBLIC_CLANKER_DEVBUY_V3_ANVIL ||
+        '0x1331f0788F9c08C8F38D52c7a1152250A9dE00be') as `0x${string}`,
       mevModule: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_ANVIL ||
         '0xFdc013ce003980889cFfd66b0c8329545ae1d1E8') as `0x${string}`,
       mevModuleV2: (process.env.NEXT_PUBLIC_CLANKER_MEV_MODULE_V2_ANVIL ||

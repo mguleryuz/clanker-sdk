@@ -166,7 +166,7 @@ const clankerTokenV4 = z.strictObject({
     .discriminatedUnion('poolType', [
       z.object({
         /** Use a V4 pool for the ETH -> paired token swap. */
-        poolType: z.literal('v4').default('v4'),
+        poolType: z.literal('v4'),
       /** How much of the token to buy (denoted in ETH). */
         ethAmount: z
           .number()
