@@ -1,10 +1,18 @@
-import { type Address, encodeAbiParameters, isAddressEqual, stringify, zeroAddress, zeroHash } from 'viem'
+import {
+  type Address,
+  encodeAbiParameters,
+  isAddressEqual,
+  stringify,
+  zeroAddress,
+  zeroHash,
+} from 'viem'
 import * as z from 'zod/v4'
 import { Clanker_v4_abi } from '../abi/v4/Clanker'
 import { ClankerAirdropV2_Instantiation_v4_abi } from '../abi/v4/ClankerAirdropV2'
 import { ClankerHook_DynamicFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookDynamicFee'
 import { ClankerHook_StaticFee_Instantiation_v4_abi } from '../abi/v4/ClankerHookStaticFee'
 import { ClankerLpLocker_Instantiation_v4_abi } from '../abi/v4/ClankerLocker'
+import { ClankerUniv3EthDevBuy_Instantiation_v4_abi } from '../abi/v4/ClankerUniv3EthDevBuy'
 import { ClankerUniV4EthDevBuy_Instantiation_v4_abi } from '../abi/v4/ClankerUniV4EthDevBuy'
 import { ClankerVault_Instantiation_v4_abi } from '../abi/v4/ClankerVault'
 import { Clanker_MevSniperAuction_InitData_v4_1_abi } from '../abi/v4.1/ClankerMevSniperAuction'
@@ -12,7 +20,12 @@ import { Clanker_PoolInitializationData_v4_1_abi } from '../abi/v4.1/ClankerPool
 import { DEFAULT_SUPPLY, POOL_POSITIONS, WETH_ADDRESSES } from '../constants'
 import { findVanityAddressV4 } from '../services/vanityAddress'
 import { Chains, type ClankerDeployment, clankerConfigFor, type RelatedV4 } from '../utils/clankers'
-import { addressSchema, ClankerContextSchema, ClankerMetadataSchema, hexSchema } from '../utils/zod-onchain'
+import {
+  addressSchema,
+  ClankerContextSchema,
+  ClankerMetadataSchema,
+  hexSchema,
+} from '../utils/zod-onchain'
 import type { ClankerTokenConverter } from './clankerTokens'
 
 // Null DevBuy configuration when paired token is WETH
@@ -97,9 +110,15 @@ const clankerTokenV4 = z.strictObject({
     .refine((v) => v.positions.some((p) => p.tickLower === v.tickIfToken0IsClanker), {
       error: 'One position must be touching the starting tick.',
     })
-    .refine((v) => v.positions.every((p) => p.tickLower % v.tickSpacing === 0 && p.tickUpper % v.tickSpacing === 0), {
-      error: 'All positions must have ticks that are multiples of the tick spacing.',
-    }),
+    .refine(
+      (v) =>
+        v.positions.every(
+          (p) => p.tickLower % v.tickSpacing === 0 && p.tickUpper % v.tickSpacing === 0
+        ),
+      {
+        error: 'All positions must have ticks that are multiples of the tick spacing.',
+      }
+    ),
   /** Token locker */
   locker: z
     .object({
@@ -144,22 +163,42 @@ const clankerTokenV4 = z.strictObject({
     .optional(),
   /** Token dev buy. Tokens are bought in the token creation transaction. */
   devBuy: z
-    .object({
-      /** How much of the token to buy (denoted in ETH). */
-      ethAmount: z.number().gt(0, { error: 'If dev buy is enabled, the purchase amount 0.' }),
-      /** Pool identifier. Used if the clanker is not paired with ETH. Then the devbuy will pay ETH -> PAIR -> CLANKER. */
-      poolKey: z
-        .object({
-          currency0: addressSchema,
-          currency1: addressSchema,
-          fee: z.number(),
-          tickSpacing: z.number(),
-          hooks: addressSchema,
-        })
-        .default(NULL_DEVBUY_POOL_CONFIG),
-      /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
-      amountOutMin: z.number().default(0),
-    })
+    .discriminatedUnion('poolType', [
+      z.object({
+        /** Use a V4 pool for the ETH -> paired token swap. */
+        poolType: z.literal('v4').default('v4'),
+        /** How much of the token to buy (denoted in ETH). */
+        ethAmount: z
+          .number()
+          .gt(0, { error: 'If dev buy is enabled, the purchase amount must be > 0.' }),
+        /** Pool identifier. Used if the clanker is not paired with ETH. Then the devbuy will pay ETH -> PAIR -> CLANKER. */
+        poolKey: z
+          .object({
+            currency0: addressSchema,
+            currency1: addressSchema,
+            fee: z.number(),
+            tickSpacing: z.number(),
+            hooks: addressSchema,
+          })
+          .default(NULL_DEVBUY_POOL_CONFIG),
+        /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
+        amountOutMin: z.number().default(0),
+      }),
+      z.object({
+        /** Use a V3 pool for the ETH -> paired token swap. */
+        poolType: z.literal('v3'),
+        /** How much of the token to buy (denoted in ETH). */
+        ethAmount: z
+          .number()
+          .gt(0, { error: 'If dev buy is enabled, the purchase amount must be > 0.' }),
+        /** V3 pool fee tier (500 = 0.05%, 3000 = 0.3%, 10000 = 1%). */
+        v3PoolFee: z.number().refine((v) => [100, 500, 3000, 10000].includes(v), {
+          error: 'V3 pool fee must be one of: 100, 500, 3000, 10000',
+        }),
+        /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
+        amountOutMin: z.number().default(0),
+      }),
+    ])
     .optional(),
   /** Fee structure for the token. */
   fees: z
@@ -272,7 +311,16 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
 
   const { salt, token: expectedAddress } = cfg.vanity
     ? await findVanityAddressV4(
-        [cfg.name, cfg.symbol, DEFAULT_SUPPLY, cfg.tokenAdmin, cfg.image, metadata, socialContext, BigInt(cfg.chainId)],
+        [
+          cfg.name,
+          cfg.symbol,
+          DEFAULT_SUPPLY,
+          cfg.tokenAdmin,
+          cfg.image,
+          metadata,
+          socialContext,
+          BigInt(cfg.chainId),
+        ],
         cfg.tokenAdmin,
         '0x4b07',
         clankerConfig
@@ -286,7 +334,8 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
   // Ensure that we don't undercount the amount needed in the airdrop. Better that we allocate 1bp extra to
   // the airdrop extension than allocate too little.
   const bpsAirdropped =
-    (airdropAmount * 10_000n) / DEFAULT_SUPPLY + ((airdropAmount * 10_000n) % DEFAULT_SUPPLY ? 1n : 0n)
+    (airdropAmount * 10_000n) / DEFAULT_SUPPLY +
+    ((airdropAmount * 10_000n) % DEFAULT_SUPPLY ? 1n : 0n)
   const roundingVerificationAirdrop = (bpsAirdropped * DEFAULT_SUPPLY) / 10_000n
 
   const roundedAirdropTooLow = airdropAmount > roundingVerificationAirdrop
@@ -297,7 +346,8 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
     )
   }
 
-  const roundedAirdropTooHigh = ((roundingVerificationAirdrop - airdropAmount) * 10_000n) / DEFAULT_SUPPLY > 1n
+  const roundedAirdropTooHigh =
+    ((roundingVerificationAirdrop - airdropAmount) * 10_000n) / DEFAULT_SUPPLY > 1n
   if (roundedAirdropTooHigh) {
     // Error if the `roundingVerificationAirdrop` has a value more than 1bps away from the requested airdrop amount
     throw new Error(
@@ -338,7 +388,8 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
           positionBps: cfg.pool.positions.map(({ positionBps }) => positionBps),
         },
         poolConfig: {
-          pairedToken: cfg.pool.pairedToken === 'WETH' ? WETH_ADDRESSES[cfg.chainId] : cfg.pool.pairedToken,
+          pairedToken:
+            cfg.pool.pairedToken === 'WETH' ? WETH_ADDRESSES[cfg.chainId] : cfg.pool.pairedToken,
           tickIfToken0IsClanker: cfg.pool.tickIfToken0IsClanker,
           tickSpacing: cfg.pool.tickSpacing,
           hook: hook,
@@ -389,20 +440,7 @@ export const clankerTokenV4Converter: ClankerTokenConverter<
               ]
             : []),
           // devBuy extension
-          ...(cfg.devBuy
-            ? [
-                {
-                  extension: clankerConfig.related.devbuy,
-                  msgValue: BigInt(cfg.devBuy.ethAmount * 1e18),
-                  extensionBps: 0,
-                  extensionData: encodeAbiParameters(ClankerUniV4EthDevBuy_Instantiation_v4_abi, [
-                    cfg.devBuy.poolKey,
-                    BigInt(cfg.devBuy.amountOutMin * 1e18),
-                    cfg.tokenAdmin,
-                  ]),
-                },
-              ]
-            : []),
+          ...encodeDevBuyExtension(cfg, clankerConfig),
         ],
       },
     ],
@@ -489,4 +527,64 @@ export function encodeFeeConfig(
   }
 
   throw new Error('Invalid config type')
+}
+
+/**
+ * Encode the devBuy extension configuration.
+ * Supports both V3 and V4 pool types for the ETH -> paired token swap.
+ *
+ * @param tokenConfig The parsed token configuration
+ * @param clankerConfig The clanker deployment configuration
+ * @returns Array of extension configs (empty if no devBuy, single element otherwise)
+ */
+function encodeDevBuyExtension(
+  tokenConfig: z.infer<typeof clankerTokenV4>,
+  clankerConfig: ClankerDeployment<RelatedV4>
+): Array<{
+  extension: `0x${string}`
+  msgValue: bigint
+  extensionBps: number
+  extensionData: `0x${string}`
+}> {
+  if (!tokenConfig.devBuy) {
+    return []
+  }
+
+  const devBuy = tokenConfig.devBuy
+
+  if (devBuy.poolType === 'v3') {
+    // V3 pool for ETH -> paired token swap
+    if (!clankerConfig.related.devbuyV3) {
+      throw new Error(
+        'V3 devBuy extension is not deployed on this chain. Use poolType: "v4" instead.'
+      )
+    }
+
+    return [
+      {
+        extension: clankerConfig.related.devbuyV3,
+        msgValue: BigInt(devBuy.ethAmount * 1e18),
+        extensionBps: 0,
+        extensionData: encodeAbiParameters(ClankerUniv3EthDevBuy_Instantiation_v4_abi, [
+          devBuy.v3PoolFee,
+          BigInt(devBuy.amountOutMin * 1e18),
+          tokenConfig.tokenAdmin,
+        ]),
+      },
+    ]
+  }
+
+  // V4 pool (default)
+  return [
+    {
+      extension: clankerConfig.related.devbuy,
+      msgValue: BigInt(devBuy.ethAmount * 1e18),
+      extensionBps: 0,
+      extensionData: encodeAbiParameters(ClankerUniV4EthDevBuy_Instantiation_v4_abi, [
+        devBuy.poolKey,
+        BigInt(devBuy.amountOutMin * 1e18),
+        tokenConfig.tokenAdmin,
+      ]),
+    },
+  ]
 }

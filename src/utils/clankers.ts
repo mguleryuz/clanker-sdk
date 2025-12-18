@@ -46,6 +46,8 @@ export type RelatedV4 = {
   mevModuleV2?: `0x${string}`
   feeStaticHookV2?: `0x${string}`
   feeDynamicHookV2?: `0x${string}`
+  /** DevBuy extension that uses V3 pools for the ETH -> paired token swap */
+  devbuyV3?: `0x${string}`
 }
 
 type RelatedAddresses = RelatedV0 | RelatedV1 | RelatedV2 | RelatedV3 | RelatedV4
