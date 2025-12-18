@@ -127,7 +127,7 @@ export class DevBuyV3Extension implements IClankerExtension {
 
     return (
       typeof devBuyData.uniV3Fee === 'number' &&
-      [100, 500, 3000, 10000].includes(devBuyData.uniV3Fee) &&
+      [100, 500, 2500, 3000, 10000].includes(devBuyData.uniV3Fee) &&
       typeof devBuyData.pairedTokenAmountOutMinimum === 'bigint' &&
       typeof devBuyData.recipient === 'string'
     )

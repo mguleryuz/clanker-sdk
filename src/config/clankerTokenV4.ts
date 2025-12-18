@@ -116,7 +116,7 @@ const clankerTokenV4 = z.strictObject({
           (p) => p.tickLower % v.tickSpacing === 0 && p.tickUpper % v.tickSpacing === 0
         ),
       {
-        error: 'All positions must have ticks that are multiples of the tick spacing.',
+      error: 'All positions must have ticks that are multiples of the tick spacing.',
       }
     ),
   /** Token locker */
@@ -167,22 +167,22 @@ const clankerTokenV4 = z.strictObject({
       z.object({
         /** Use a V4 pool for the ETH -> paired token swap. */
         poolType: z.literal('v4').default('v4'),
-        /** How much of the token to buy (denoted in ETH). */
+      /** How much of the token to buy (denoted in ETH). */
         ethAmount: z
           .number()
           .gt(0, { error: 'If dev buy is enabled, the purchase amount must be > 0.' }),
-        /** Pool identifier. Used if the clanker is not paired with ETH. Then the devbuy will pay ETH -> PAIR -> CLANKER. */
-        poolKey: z
-          .object({
-            currency0: addressSchema,
-            currency1: addressSchema,
-            fee: z.number(),
-            tickSpacing: z.number(),
-            hooks: addressSchema,
-          })
-          .default(NULL_DEVBUY_POOL_CONFIG),
-        /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
-        amountOutMin: z.number().default(0),
+      /** Pool identifier. Used if the clanker is not paired with ETH. Then the devbuy will pay ETH -> PAIR -> CLANKER. */
+      poolKey: z
+        .object({
+          currency0: addressSchema,
+          currency1: addressSchema,
+          fee: z.number(),
+          tickSpacing: z.number(),
+          hooks: addressSchema,
+        })
+        .default(NULL_DEVBUY_POOL_CONFIG),
+      /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
+      amountOutMin: z.number().default(0),
       }),
       z.object({
         /** Use a V3 pool for the ETH -> paired token swap. */
@@ -191,9 +191,9 @@ const clankerTokenV4 = z.strictObject({
         ethAmount: z
           .number()
           .gt(0, { error: 'If dev buy is enabled, the purchase amount must be > 0.' }),
-        /** V3 pool fee tier (500 = 0.05%, 3000 = 0.3%, 10000 = 1%). */
-        v3PoolFee: z.number().refine((v) => [100, 500, 3000, 10000].includes(v), {
-          error: 'V3 pool fee must be one of: 100, 500, 3000, 10000',
+        /** V3 pool fee tier. Common values: 100 (0.01%), 500 (0.05%), 2500 (0.25% - PancakeSwap), 3000 (0.3%), 10000 (1%). */
+        v3PoolFee: z.number().refine((v) => [100, 500, 2500, 3000, 10000].includes(v), {
+          error: 'V3 pool fee must be one of: 100, 500, 2500, 3000, 10000',
         }),
         /** Amount out min for the ETH -> PAIR swap. Used if the clanker is not paired with ETH. */
         amountOutMin: z.number().default(0),
